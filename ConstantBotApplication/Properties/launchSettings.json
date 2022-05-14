@@ -1,0 +1,16 @@
+{
+  "profiles": {
+    "ConstantBotApplication": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "token": ""
+      }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "environmentVariables": {
+        "token": ""
+      }
+    }
+  }
+}
