@@ -1,13 +1,12 @@
 ﻿using ConstantBotApplication.Handlers;
+using ConstantBotApplication.Modules.Events;
+using ConstantBotApplication.Modules.Events.Abstractions;
 using Discord.Commands;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ConstantBotApplication.Extensions;
 
 namespace ConstantBotApplication
 {
@@ -15,6 +14,7 @@ namespace ConstantBotApplication
     {
 		private readonly CommandService _commands;
         private readonly InteractionService _interactions;
+
         private readonly DiscordSocketClient _client;
 
 		// Ask if there are existing CommandService and DiscordSocketClient
@@ -31,6 +31,9 @@ namespace ConstantBotApplication
 			.AddSingleton(_client)
 			.AddSingleton(_commands)
 			.AddSingleton(_interactions)
+			.AddBotContext()
+			.AddSingleton<Handlers.EventHandler>()
+			.AddSingleton<IDiscordUserEventHandler,DiscordUserEvents>()
 			.AddSingleton<CommandHandler>()
 			.AddSingleton<InteractionsHandler>()
 			.BuildServiceProvider();

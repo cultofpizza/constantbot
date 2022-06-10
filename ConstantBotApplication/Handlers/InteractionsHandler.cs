@@ -25,11 +25,16 @@ namespace ConstantBotApplication.Handlers
 
 		public async Task InitializeAsync()
 		{
-			await _interactions.AddModulesAsync(
-				assembly: Assembly.GetEntryAssembly(),
-				services: _services);
-			await _interactions.RegisterCommandsGloballyAsync();
-			_client.InteractionCreated += HandleInteractionsAsync;
+            await _interactions.AddModulesAsync(
+                assembly: Assembly.GetEntryAssembly(),
+                services: _services);
+            //        foreach (var item in _client.Guilds)
+            //        {
+            //await _interactions.RegisterCommandsToGuildAsync(item.Id);
+            //        }
+            //_client.JoinedGuild += async guild => await _interactions.RegisterCommandsToGuildAsync(guild.Id);
+            await _interactions.RegisterCommandsGloballyAsync();
+            _client.InteractionCreated += HandleInteractionsAsync;
 		}
 
 		private async Task HandleInteractionsAsync(SocketInteraction interaction)
