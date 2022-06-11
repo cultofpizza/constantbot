@@ -15,6 +15,7 @@ namespace ConstantBotApplication
 	public class Program
 	{
         private DiscordSocketClient _client;
+        private bool startedUp = false;
 
         public static Task Main(string[] args) => new Program().MainAsync();
 
@@ -28,7 +29,7 @@ namespace ConstantBotApplication
 
 			var _config = new DiscordSocketConfig
 			{
-				
+				GatewayIntents = GatewayIntents.All,
 				MessageCacheSize = 100,
 				AlwaysDownloadUsers = true
 			};
@@ -47,11 +48,16 @@ namespace ConstantBotApplication
 
             _client.Connected += async () =>
 			{
-				await services.GetService<CommandHandler>().InitializeAsync();
-				await services.GetService<InteractionsHandler>().InitializeAsync();
+                if (!startedUp)
+                {
+					await services.GetService<CommandHandler>().InitializeAsync();
+					await services.GetService<InteractionsHandler>().InitializeAsync();
 
-				services.GetService<Handlers.EventHandler>().RegisterEvents();
-				await services.InitializeBotContextAsync();
+					services.GetService<Handlers.EventHandler>().RegisterEvents();
+					await services.InitializeBotContextAsync();
+
+					startedUp = true;
+				}
 			};
 
 

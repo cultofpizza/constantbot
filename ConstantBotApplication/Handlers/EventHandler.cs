@@ -1,5 +1,6 @@
 ﻿using ConstantBotApplication.Domain;
 using ConstantBotApplication.Modules.Events.Abstractions;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,16 +16,20 @@ internal class EventHandler
 {
     private readonly DiscordSocketClient _client;
     private readonly IDiscordUserEventHandler _userEvents;
+    private readonly BotContext _context;
 
-    public EventHandler(DiscordSocketClient client, IDiscordUserEventHandler userEvents, IServiceScopeFactory scopeFactory)
+    public EventHandler(DiscordSocketClient client, IDiscordUserEventHandler userEvents, BotContext context)
     {
         _client = client;
         _userEvents = userEvents;
+        _context = context;
     }
 
     public void RegisterEvents()
     {
         RegisterUserEvents();
+
+        RegisterTestEvents();
     }
 
     public void RegisterUserEvents()
@@ -36,5 +41,11 @@ internal class EventHandler
         _client.UserCommandExecuted += _userEvents.UserCommandExecuted;
         _client.UserUnbanned += _userEvents.UserUnbanned;
         _client.UserVoiceStateUpdated += _userEvents.UserVoiceStateUpdated;
+        _client.GuildMemberUpdated += _userEvents.GuildMemberUpdated;
+    }
+
+    public void RegisterTestEvents()
+    {
+
     }
 }
