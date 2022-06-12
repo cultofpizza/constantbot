@@ -32,6 +32,7 @@ namespace ConstantBotApplication
 			.AddSingleton(_commands)
 			.AddSingleton(_interactions)
 			.AddBotContext()
+			.AddDefaultJsonOptions()
 			.AddSingleton<Handlers.EventHandler>()
 			.AddSingleton<IDiscordUserEventHandler,DiscordUserEvents>()
 			.AddSingleton<CommandHandler>()

@@ -34,10 +34,27 @@ namespace ConstantBotApplication.Handlers
             //        }
             //_client.JoinedGuild += async guild => await _interactions.RegisterCommandsToGuildAsync(guild.Id);
             await _interactions.RegisterCommandsGloballyAsync();
+            _interactions.InteractionExecuted += OnInteractionExecuted;
             _client.InteractionCreated += HandleInteractionsAsync;
 		}
 
-		private async Task HandleInteractionsAsync(SocketInteraction interaction)
+        private async Task OnInteractionExecuted(ICommandInfo cmd, IInteractionContext context, IResult result)
+        {
+			if (!result.IsSuccess)
+			{
+				if (result.Error == InteractionCommandError.UnmetPrecondition)
+				{
+					await context.Interaction.RespondAsync(Emoji.Parse(":octagonal_sign:") + " You are not allowed to perform this action!", ephemeral: true);
+				}
+                else
+                {
+					await Logger.LogAsync(new LogMessage(LogSeverity.Error,cmd.Name,result.ErrorReason));
+					await context.Interaction.RespondAsync(Emoji.Parse(":cry:") + " Something went wrong", ephemeral: true);
+                }
+			}
+        }
+
+        private async Task HandleInteractionsAsync(SocketInteraction interaction)
 		{
 			var context = new SocketInteractionContext(_client, interaction);
 			await _interactions.ExecuteCommandAsync(
