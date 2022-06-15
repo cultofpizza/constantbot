@@ -10,7 +10,7 @@ using ConstantBotApplication.Extensions;
 
 namespace ConstantBotApplication
 {
-    internal class DIInitializer
+    internal class Startup
     {
 		private readonly CommandService _commands;
         private readonly InteractionService _interactions;
@@ -20,7 +20,7 @@ namespace ConstantBotApplication
 		// Ask if there are existing CommandService and DiscordSocketClient
 		// instance. If there are, we retrieve them and add them to the
 		// DI container; if not, we create our own.
-		public DIInitializer(CommandService commands = null,InteractionService interactions = null, DiscordSocketClient client = null)
+		public Startup(CommandService commands = null,InteractionService interactions = null, DiscordSocketClient client = null)
 		{
 			_commands = commands ?? new CommandService();
 			_client = client ?? new DiscordSocketClient();
@@ -35,6 +35,7 @@ namespace ConstantBotApplication
 			.AddDefaultJsonOptions()
 			.AddSingleton<Handlers.EventHandler>()
 			.AddSingleton<IDiscordUserEventHandler,DiscordUserEvents>()
+			.AddSingleton<IDiscordRoleEventHandler,DiscordRoleEvents>()
 			.AddSingleton<CommandHandler>()
 			.AddSingleton<InteractionsHandler>()
 			.BuildServiceProvider();

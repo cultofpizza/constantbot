@@ -16,18 +16,20 @@ internal class EventHandler
 {
     private readonly DiscordSocketClient _client;
     private readonly IDiscordUserEventHandler _userEvents;
-    private readonly BotContext _context;
+    private readonly IDiscordRoleEventHandler _roleEvents;
 
-    public EventHandler(DiscordSocketClient client, IDiscordUserEventHandler userEvents, BotContext context)
+    public EventHandler(DiscordSocketClient client, IDiscordUserEventHandler userEvents, IDiscordRoleEventHandler roleEvents)
     {
         _client = client;
         _userEvents = userEvents;
-        _context = context;
+        _roleEvents = roleEvents;
     }
 
     public void RegisterEvents()
     {
         RegisterUserEvents();
+
+        RegisterRoleEvents();
 
         RegisterTestEvents();
     }
@@ -44,8 +46,21 @@ internal class EventHandler
         _client.GuildMemberUpdated += _userEvents.GuildMemberUpdated;
     }
 
+    public void RegisterRoleEvents()
+    {
+        _client.RoleCreated += _roleEvents.RoleCreated;
+        _client.RoleDeleted += _roleEvents.RoleDeleted;
+        _client.RoleUpdated += _roleEvents.RoleUpdated;
+    }
+
     public void RegisterTestEvents()
     {
+        //_client.ChannelCreated ChannelEvents
 
+        //_client.GuildScheduledEventCreated Events Events
+
+        //_client.ReactionAdded Reactions to bot messages
+
+        //_client.UserJoined Welcome to new users
     }
 }

@@ -36,7 +36,7 @@ namespace ConstantBotApplication
 
 			_client = new DiscordSocketClient(_config);
 
-			var services = new DIInitializer(client: _client).BuildServiceProvider();
+			var services = new Startup(client: _client).BuildServiceProvider();
 
             var _interactionService = new InteractionService(_client);
 
