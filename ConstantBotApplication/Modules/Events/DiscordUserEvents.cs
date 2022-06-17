@@ -31,25 +31,36 @@ namespace ConstantBotApplication.Modules.Events
             var builder = new EmbedBuilder()
                 .WithAuthor(userAfter)
                 .WithFooter($"ID: {userAfter.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Gold)
+                .WithCurrentTimestamp();
+            if (userBefore.HasValue && !userBefore.Value.Roles.SequenceEqual(userAfter.Roles))
+            {
+                builder.WithColor(Color.Blue);
+                if (userBefore.Value.Roles.Count() < userAfter.Roles.Count())
+                    builder.WithDescription($"{Emoji.Parse(":gear:")} ``{userAfter.DisplayName}`` was assigned a role ``{userAfter.Roles.Except(userBefore.Value.Roles).FirstOrDefault()}``");
+                else
+                    builder.WithDescription($"{Emoji.Parse(":gear:")} ``{userAfter.DisplayName}``\'s role ``{userBefore.Value.Roles.Except(userAfter.Roles).FirstOrDefault()}`` was taken away");
+            }
+            else
+            {
+                builder.WithColor(Color.Gold)
                 .WithDescription($"{Emoji.Parse(":detective:")} ``{userAfter.Nickname ?? userAfter.Username}`` has updated server profile")
                 .AddField("User", userAfter.Mention);
-            if (userBefore.HasValue && userBefore.Value.DisplayAvatarId != userAfter.DisplayAvatarId)
-            {
-                //builder.AddField("Server avatar before", userBefore.Value.AvatarId != null ? $"[Avatar]({userBefore.Value.GetGuildAvatarUrl()})" : $"[Avatar]({userBefore.Value.GetDefaultAvatarUrl()})");
-                //if (userAfter.AvatarId != null)
-                //    builder.WithImageUrl(userAfter.GetGuildAvatarUrl());
-                //else
-                //    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl()); Old avatars(except default) are not accessible
-                if (userAfter.AvatarId != null)
-                    builder.WithImageUrl(userAfter.GetAvatarUrl());
-                else
-                    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl());
+                if (userBefore.HasValue && userBefore.Value.DisplayAvatarId != userAfter.DisplayAvatarId)
+                {
+                    //builder.AddField("Server avatar before", userBefore.Value.AvatarId != null ? $"[Avatar]({userBefore.Value.GetGuildAvatarUrl()})" : $"[Avatar]({userBefore.Value.GetDefaultAvatarUrl()})");
+                    //if (userAfter.AvatarId != null)
+                    //    builder.WithImageUrl(userAfter.GetGuildAvatarUrl());
+                    //else
+                    //    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl()); Old avatars(except default) are not accessible
+                    if (userAfter.AvatarId != null)
+                        builder.WithImageUrl(userAfter.GetAvatarUrl());
+                    else
+                        builder.WithImageUrl(userAfter.GetDefaultAvatarUrl());
+                }
+                if (userBefore.HasValue && userBefore.Value.Nickname != userAfter.Nickname)
+                    builder.AddField("Nickname before", userBefore.Value.Nickname != null ? $"``{userBefore.Value.Nickname}``" : "None", true)
+                    .AddField("After", userAfter.Nickname != null ? $"``{userAfter.Nickname}``" : "None", true);
             }
-            if (userBefore.HasValue && userBefore.Value.Nickname != userAfter.Nickname)
-                builder.AddField("Nickname before", userBefore.Value.Nickname != null ? $"``{userBefore.Value.Nickname}``" : "None", true)
-                .AddField("After", userAfter.Nickname != null ? $"``{userAfter.Nickname}``" : "None", true);
 
             var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             if (builder.Fields.Count != 1 || builder.ImageUrl != null)
@@ -125,7 +136,7 @@ namespace ConstantBotApplication.Modules.Events
                 .WithColor(Color.Red)
                 .WithDescription($"{Emoji.Parse(":confetti_ball:")} ``{user.Username}`` left your server!")
                 .WithImageUrl(user.GetAvatarUrl())
-                .AddField("User",user.Mention);
+                .AddField("User", user.Mention);
 
 
             var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
@@ -143,7 +154,7 @@ namespace ConstantBotApplication.Modules.Events
                 .WithCurrentTimestamp()
                 .WithColor(Color.Green)
                 .WithDescription($"{Emoji.Parse(":hammer:")} ``{user.Username}`` was unbanned!")
-                .AddField("User",user.Mention);
+                .AddField("User", user.Mention);
 
             var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             await channel.SendMessageAsync(embed: builder.Build());
