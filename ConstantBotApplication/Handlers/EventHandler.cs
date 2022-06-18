@@ -17,12 +17,14 @@ internal class EventHandler
     private readonly DiscordSocketClient _client;
     private readonly IDiscordUserEventHandler _userEvents;
     private readonly IDiscordRoleEventHandler _roleEvents;
+    private readonly IDiscordChannelEventHandler _channelEvents;
 
-    public EventHandler(DiscordSocketClient client, IDiscordUserEventHandler userEvents, IDiscordRoleEventHandler roleEvents)
+    public EventHandler(DiscordSocketClient client, IDiscordUserEventHandler userEvents, IDiscordRoleEventHandler roleEvents, IDiscordChannelEventHandler channelEvents)
     {
         _client = client;
         _userEvents = userEvents;
         _roleEvents = roleEvents;
+        _channelEvents = channelEvents;
     }
 
     public void RegisterEvents()
@@ -30,6 +32,8 @@ internal class EventHandler
         RegisterUserEvents();
 
         RegisterRoleEvents();
+
+        RegisterChannelEvents();
 
         RegisterTestEvents();
     }
@@ -40,7 +44,6 @@ internal class EventHandler
         _client.UserJoined += _userEvents.UserJoined;
         _client.UserLeft += _userEvents.UserLeft;
         _client.UserBanned += _userEvents.UserBanned;
-        _client.UserCommandExecuted += _userEvents.UserCommandExecuted;
         _client.UserUnbanned += _userEvents.UserUnbanned;
         _client.UserVoiceStateUpdated += _userEvents.UserVoiceStateUpdated;
         _client.GuildMemberUpdated += _userEvents.GuildMemberUpdated;
@@ -51,6 +54,13 @@ internal class EventHandler
         _client.RoleCreated += _roleEvents.RoleCreated;
         _client.RoleDeleted += _roleEvents.RoleDeleted;
         _client.RoleUpdated += _roleEvents.RoleUpdated;
+    }
+
+    public void RegisterChannelEvents()
+    {
+        _client.ChannelCreated += _channelEvents.ChannelCreated;
+        _client.ChannelDestroyed += _channelEvents.ChannelDeleted;
+        _client.ChannelUpdated +=_channelEvents.ChannelUpdated;
     }
 
     public void RegisterTestEvents()

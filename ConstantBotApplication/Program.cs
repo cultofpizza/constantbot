@@ -9,60 +9,63 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using System;
 using System.Threading.Tasks;
+using static Discord.GatewayIntents;
 
 namespace ConstantBotApplication
 {
-	public class Program
-	{
+    public class Program
+    {
         private DiscordSocketClient _client;
         private bool startedUp = false;
 
         public static Task Main(string[] args) => new Program().MainAsync();
 
-		public async Task MainAsync()
-		{
-			Log.Logger = new LoggerConfiguration()
-				.MinimumLevel.Verbose()
-				.Enrich.FromLogContext()
-				.WriteTo.Console()
-				.CreateLogger();
+        public async Task MainAsync()
+        {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .CreateLogger();
 
-			var _config = new DiscordSocketConfig
-			{
-				GatewayIntents = GatewayIntents.All,
-				MessageCacheSize = 100,
-				AlwaysDownloadUsers = true
-			};
+            var _config = new DiscordSocketConfig
+            {
+                GatewayIntents = Guilds | GuildMembers | GuildBans | GuildVoiceStates | GuildMessages | GuildMessageReactions | DirectMessages | DirectMessageReactions,
+                MessageCacheSize = 100,
+                AlwaysDownloadUsers = true
+            };
 
-			_client = new DiscordSocketClient(_config);
 
-			var services = new Startup(client: _client).BuildServiceProvider();
+
+            _client = new DiscordSocketClient(_config);
+
+            var services = new Startup(client: _client).BuildServiceProvider();
 
             var _interactionService = new InteractionService(_client);
 
-			_client.Log += Logger.LogAsync;
-			await _client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("token"));
-			await _client.StartAsync();
+            _client.Log += Logger.LogAsync;
+            await _client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("token"));
+            await _client.StartAsync();
 
 
 
             _client.Connected += async () =>
-			{
+            {
                 if (!startedUp)
                 {
-					await services.GetService<CommandHandler>().InitializeAsync();
-					await services.GetService<InteractionsHandler>().InitializeAsync();
+                    await services.GetService<CommandHandler>().InitializeAsync();
+                    await services.GetService<InteractionsHandler>().InitializeAsync();
 
-					services.GetService<Handlers.EventHandler>().RegisterEvents();
-					await services.InitializeBotContextAsync();
+                    services.GetService<Handlers.EventHandler>().RegisterEvents();
+                    await services.InitializeBotContextAsync();
 
-					startedUp = true;
-				}
-			};
+                    startedUp = true;
+                }
+            };
 
 
 
-			await Task.Delay(-1);
-		}
+            await Task.Delay(-1);
+        }
     }
 }

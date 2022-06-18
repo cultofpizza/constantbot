@@ -86,25 +86,6 @@ namespace ConstantBotApplication.Modules.Events
             await channel.SendMessageAsync(embed: builder.Build());
         }
 
-        public async Task UserCommandExecuted(SocketUserCommand cmd)
-        {
-            var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == cmd.GuildId).SingleOrDefaultAsync();
-            if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
-
-            var builder = new EmbedBuilder()
-                .WithAuthor(cmd.User)
-                .WithFooter($"ID: {cmd.User.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Magenta)
-                .WithDescription($"{Emoji.Parse(":incoming_envelope:")} ``{cmd.User.Username}``({cmd.User.Mention}) is using command {cmd.CommandName}")
-                .AddField("User", cmd.User.Mention, true)
-                .AddField("Channel", cmd.Channel.Name, true);
-
-
-            var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
-            await channel.SendMessageAsync(embed: builder.Build());
-        }
-
         public async Task UserJoined(SocketGuildUser user)
         {
             var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == user.Guild.Id).SingleOrDefaultAsync();
@@ -239,5 +220,24 @@ namespace ConstantBotApplication.Modules.Events
             }
             await channel.SendMessageAsync(embed: builder.Build());
         }
+
+        //public async Task UserCommandExecuted(SocketUserCommand cmd)
+        //{
+        //    var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == cmd.GuildId).SingleOrDefaultAsync();
+        //    if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+
+        //    var builder = new EmbedBuilder()
+        //        .WithAuthor(cmd.User)
+        //        .WithFooter($"ID: {cmd.User.Id}")
+        //        .WithCurrentTimestamp()
+        //        .WithColor(Color.Magenta)
+        //        .WithDescription($"{Emoji.Parse(":incoming_envelope:")} ``{cmd.User.Username}``({cmd.User.Mention}) is using command {cmd.CommandName}")
+        //        .AddField("User", cmd.User.Mention, true)
+        //        .AddField("Channel", cmd.Channel.Name, true);
+
+
+        //    var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+        //    await channel.SendMessageAsync(embed: builder.Build());
+        //}
     }
 }
