@@ -37,16 +37,16 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
     public async Task Clear(int count = 1, SocketGuildUser user = null, int maxMessages = 100)
     {
         if (maxMessages < count) maxMessages = count;
-        await RespondAsync("Proccessing", ephemeral: true);
+        await DeferAsync();
         var messages = await Context.Channel.GetMessagesAsync(maxMessages).FlattenAsync();
         messages = messages.Where(i => i.Timestamp > DateTime.UtcNow.AddDays(-14)).AsEnumerable();
         if (user != null)
             messages = messages.Where(i => i.Author.Id == user.Id).AsEnumerable();
         messages = messages.Where(i => !(i.Flags.HasValue && i.Flags.Value.HasFlag(MessageFlags.Ephemeral))).Take(count).AsEnumerable();
         await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages, DeletionRequestOptions);
-        var botResponse = await Context.Channel.SendMessageAsync($"Deleted {messages.Count()} messages");
+        await ModifyOriginalResponseAsync(m => m.Content = $"Deleted {messages.Count()} messages");
         await Task.Delay(5000);
-        await botResponse.DeleteAsync();
+        await DeleteOriginalResponseAsync();
     }
 
     [RequireUserPermission(GuildPermission.ManageMessages)]
@@ -60,14 +60,14 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
         }
         else
         {
-            await RespondAsync("Proccessing", ephemeral: true);
+            await DeferAsync();
             var messages = (await Context.Channel.GetMessagesAsync(message, Direction.After).FlattenAsync()).ToList();
             messages = messages.Where(i => !(i.Flags.HasValue && i.Flags.Value.HasFlag(MessageFlags.Ephemeral))).ToList();
             messages.Add(message);
             await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages, DeletionRequestOptions);
-            var botResponse = await Context.Channel.SendMessageAsync($"Deleted {messages.Count()} messages");
+            await ModifyOriginalResponseAsync(m => m.Content = $"Deleted {messages.Count()} messages");
             await Task.Delay(5000);
-            await botResponse.DeleteAsync();
+            await DeleteOriginalResponseAsync();
         }
     }
 
@@ -75,7 +75,7 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
     [SlashCommand("audit", "Returns last audit actions")]
     public async Task Audit(int count = 1)
     {
-        await RespondAsync("Proccessing",ephemeral: true);
+        await DeferAsync();
         var audit = await Context.Guild.GetAuditLogsAsync(count).FlattenAsync();
 
         var auditJson = JsonSerializer.Serialize(audit, _jsonOptions);
@@ -85,7 +85,13 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
         await stream.WriteAsync(auditJson);
         stream.Close();
 
-        await Context.Channel.SendFileAsync(filename);
+        var files = new List<FileAttachment> { new FileAttachment(filename) };
+
+        await ModifyOriginalResponseAsync(m =>
+        {
+            m.Attachments = files;
+            m.Content = "Here is your audit";
+        });
 
         await Task.Delay(5000);
 
