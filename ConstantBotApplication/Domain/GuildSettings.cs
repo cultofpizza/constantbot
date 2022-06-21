@@ -12,5 +12,6 @@ namespace ConstantBotApplication.Domain
         public ulong GuilId { get; set; }
         public bool MonitoringEnable { get; set; }
         public ulong? MonitorChannelId { get; set; }
+        public ulong? ReportChannelId { get; set; }
     }
 }

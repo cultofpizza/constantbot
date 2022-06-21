@@ -10,6 +10,9 @@ using System.Threading.Tasks;
 
 namespace ConstantBotApplication.Modules.Interactions;
 
+[Group("setup","Configures...")]
+[RequireUserPermission(Discord.GuildPermission.Administrator)]
+[RequireBotPermission(Discord.ChannelPermission.SendMessages)]
 public class SettingsModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly BotContext _context;
@@ -19,14 +22,24 @@ public class SettingsModule : InteractionModuleBase<SocketInteractionContext>
         _context = context;
     }
 
-    [RequireOwner]
-    [SlashCommand("monitor", "Configures monitoring")]
-    public async Task SetChannel(bool? enabled)
+    [SlashCommand("monitoring", "Configures monitoring")]
+    public async Task SetMonitoringChannel(bool? enabled)
     {
         var entry = await _context.GuildSettings.Where(i => i.GuilId == Context.Guild.Id).FirstOrDefaultAsync();
 
         entry.MonitoringEnable = enabled.HasValue ? enabled.Value : true;
         entry.MonitorChannelId = Context.Channel.Id;
+
+        await _context.SaveChangesAsync();
+        await RespondAsync("Changes applied successfuly!", ephemeral: true);
+    }
+
+    [SlashCommand("reports","Configures reporting")]
+    public async Task SetReportChannel(bool? enabled)
+    {
+        var entry = await _context.GuildSettings.Where(i => i.GuilId == Context.Guild.Id).FirstOrDefaultAsync();
+
+        entry.ReportChannelId = enabled.HasValue ? Context.Channel.Id : null;
 
         await _context.SaveChangesAsync();
         await RespondAsync("Changes applied successfuly!", ephemeral: true);

@@ -7,6 +7,7 @@ using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using ConstantBotApplication.Extensions;
+using ConstantBotApplication.Voice;
 
 namespace ConstantBotApplication
 {
@@ -39,6 +40,7 @@ namespace ConstantBotApplication
 			.AddSingleton<IDiscordChannelEventHandler,DiscordChannelEvents>()
 			.AddSingleton<CommandHandler>()
 			.AddSingleton<InteractionsHandler>()
+			.AddSingleton<VoiceClientManager>()
 			.BuildServiceProvider();
 	}
 }

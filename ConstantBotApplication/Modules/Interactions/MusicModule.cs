@@ -1,4 +1,5 @@
-﻿using Discord.Audio;
+﻿using Discord;
+using Discord.Audio;
 using Discord.Interactions;
 using Discord.WebSocket;
 using System;
@@ -11,9 +12,12 @@ using System.Threading.Tasks;
 
 namespace ConstantBotApplication.Modules.Interactions;
 
+[EnabledInDm(false)]
+[DontAutoRegister]
+[Obsolete("Use MusicPlayerModule instead")]
+[Group("music","Obsolete")]
 public class MusicModule : InteractionModuleBase<SocketInteractionContext>
 {
-
 
     [SlashCommand("play", "(BETA) Plays music from not only youtube", runMode: RunMode.Async)]
     public async Task Play(string track)

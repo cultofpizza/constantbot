@@ -28,11 +28,7 @@ namespace ConstantBotApplication.Handlers
             await _interactions.AddModulesAsync(
                 assembly: Assembly.GetEntryAssembly(),
                 services: _services);
-            //        foreach (var item in _client.Guilds)
-            //        {
-            //await _interactions.RegisterCommandsToGuildAsync(item.Id);
-            //        }
-            //_client.JoinedGuild += async guild => await _interactions.RegisterCommandsToGuildAsync(guild.Id);
+
             await _interactions.RegisterCommandsGloballyAsync();
             _interactions.InteractionExecuted += OnInteractionExecuted;
             _client.InteractionCreated += HandleInteractionsAsync;
@@ -49,8 +45,11 @@ namespace ConstantBotApplication.Handlers
                 else
                 {
 					await Logger.LogAsync(new LogMessage(LogSeverity.Error,cmd.Name,result.ErrorReason));
-					await context.Interaction.RespondAsync(Emoji.Parse(":cry:") + " Something went wrong", ephemeral: true);
-                }
+					if (!context.Interaction.HasResponded)
+						await context.Interaction.RespondAsync(Emoji.Parse(":cry:") + " Something went wrong", ephemeral: true);
+					else
+						await context.Interaction.ModifyOriginalResponseAsync(m => m.Content = Emoji.Parse(":cry:") + " Something went wrong");
+				}
 			}
         }
 
