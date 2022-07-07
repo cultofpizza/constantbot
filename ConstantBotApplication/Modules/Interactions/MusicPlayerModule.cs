@@ -11,14 +11,16 @@ using System.Threading.Tasks;
 namespace ConstantBotApplication.Modules.Interactions;
 
 [EnabledInDm(false)]
+[DontAutoRegister]
+[Group("legacy", "Don`t use it")]
 public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly VoiceClientManager manager;
 
-    public MusicPlayerModule(VoiceClientManager manager)
-    {
-        this.manager = manager;
-    }
+    //public MusicPlayerModule(VoiceClientManager manager)
+    //{
+    //    this.manager = manager;
+    //}
 
     [SlashCommand("play", "Play a track")]
     public async Task Play(string name)

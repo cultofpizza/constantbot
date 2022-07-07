@@ -17,7 +17,7 @@ public class VoiceClient : IDisposable
 
     private Thread thread;
     private Process ffmpegProcess;
-    public bool isPlaying = false;
+    public bool IsPlaying { get; set; } = false;
 
     private IAudioClient _rawClient;
 
@@ -39,7 +39,7 @@ public class VoiceClient : IDisposable
             ffmpegProcess.Kill();
         thread = new Thread(async start => await PlayThread());
         thread.Start();
-        isPlaying = true;
+        IsPlaying = true;
     }
 
     public async Task StopAsync()
@@ -48,7 +48,7 @@ public class VoiceClient : IDisposable
         {
             ffmpegProcess.Kill();
             await ffmpegProcess.WaitForExitAsync();
-            isPlaying = false;
+            IsPlaying = false;
         }
     }
 
@@ -62,12 +62,7 @@ public class VoiceClient : IDisposable
         {
             await Play();
         }
-        isPlaying = true;
-    }
-
-    private async void Pause()
-    {
-        throw new NotImplementedException();
+        IsPlaying = true;
     }
 
     private async Task PlayThread()
@@ -94,7 +89,7 @@ public class VoiceClient : IDisposable
                 }
                 finally { await discord.FlushAsync(); }
             }
-            if (!isPlaying) return;
+            if (!IsPlaying) return;
         }
     }
 
@@ -102,5 +97,15 @@ public class VoiceClient : IDisposable
     {
         _rawClient.Dispose();
         ffmpegProcess?.Dispose();
+    }
+
+    public Task Pause()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task SetTrackTime()
+    {
+        throw new NotImplementedException();
     }
 }

@@ -16,7 +16,6 @@ namespace ConstantBotApplication
     public class Program
     {
         private DiscordSocketClient _client;
-        private bool startedUp = false;
 
         public static Task Main(string[] args) => new Program().MainAsync();
 
@@ -49,21 +48,15 @@ namespace ConstantBotApplication
 
 
 
-            _client.Connected += async () =>
+            _client.Ready += async () =>
             {
-                if (!startedUp)
-                {
-                    await services.GetService<CommandHandler>().InitializeAsync();
-                    await services.GetService<InteractionsHandler>().InitializeAsync();
+                await services.GetService<CommandHandler>().InitializeAsync();
+                await services.GetService<InteractionsHandler>().InitializeAsync();
 
-                    services.GetService<Handlers.EventHandler>().RegisterEvents();
-                    await services.InitializeBotContextAsync();
-
-                    startedUp = true;
-                }
+                services.GetService<Handlers.EventHandler>().RegisterEvents();
+                await services.InitializeBotContextAsync();
+                await services.InitializeVoiceManagmentAsync();
             };
-
-
 
             await Task.Delay(-1);
         }

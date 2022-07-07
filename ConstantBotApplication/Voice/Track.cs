@@ -24,21 +24,26 @@ public class Track
             RedirectStandardOutput = true,
         };
 
-        var searchprocess = Process.Start(searchInfo);
-
-        await searchprocess.WaitForExitAsync();
         List<string> output;
         string title, url;
+        int retries = 0;
         while (true)
         {
+            var searchprocess = Process.Start(searchInfo);
+
+            await searchprocess.WaitForExitAsync();
+            if (retries > 3) throw new ArgumentException("youtube-dl fails to get track");
+            retries++;
             output = searchprocess.StandardOutput.ReadToEnd().Split('\n').Where(i => i.Length > 0).ToList();
+            if (output.Count < 2) continue;
             title = output.First();
             url = output.Last();
             var client = new HttpClient();
             var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
             if (response.IsSuccessStatusCode)
                 break;
+
         }
-        return new Track { Title=title, Url=url};
+        return new Track { Title = title, Url = url };
     }
 }

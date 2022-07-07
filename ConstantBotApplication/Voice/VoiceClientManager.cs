@@ -47,7 +47,7 @@ public class VoiceClientManager
             {
                 if (VoiceClients.TryGetValue(item.Key, out var client))
                 {
-                    if (!client.isPlaying)
+                    if (!client.IsPlaying)
                     {
                         counter[item.Key]++;
                         if (counter[item.Key] == 12)

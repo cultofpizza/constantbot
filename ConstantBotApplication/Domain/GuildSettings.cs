@@ -13,5 +13,6 @@ namespace ConstantBotApplication.Domain
         public bool MonitoringEnable { get; set; }
         public ulong? MonitorChannelId { get; set; }
         public ulong? ReportChannelId { get; set; }
+        public ushort? Volume { get; set; }
     }
 }

@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using ConstantBotApplication.Extensions;
 using ConstantBotApplication.Voice;
-
 namespace ConstantBotApplication
 {
     internal class Startup
@@ -34,13 +33,13 @@ namespace ConstantBotApplication
 			.AddSingleton(_interactions)
 			.AddBotContext()
 			.AddDefaultJsonOptions()
+			.AddVoiceManagement()
 			.AddSingleton<Handlers.EventHandler>()
 			.AddSingleton<IDiscordUserEventHandler,DiscordUserEvents>()
 			.AddSingleton<IDiscordRoleEventHandler,DiscordRoleEvents>()
 			.AddSingleton<IDiscordChannelEventHandler,DiscordChannelEvents>()
 			.AddSingleton<CommandHandler>()
 			.AddSingleton<InteractionsHandler>()
-			.AddSingleton<VoiceClientManager>()
 			.BuildServiceProvider();
 	}
 }
