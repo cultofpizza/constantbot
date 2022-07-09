@@ -16,10 +16,12 @@ namespace ConstantBotApplication.Modules.Interactions;
 public class SettingsModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly BotContext _context;
+    private readonly InteractionService interactions;
 
-    public SettingsModule(BotContext context)
+    public SettingsModule(BotContext context, InteractionService interactions)
     {
         _context = context;
+        this.interactions = interactions;
     }
 
     [SlashCommand("monitoring", "Configures monitoring")]

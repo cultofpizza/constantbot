@@ -1,7 +1,9 @@
 ﻿using ConstantBotApplication.Domain;
+using ConstantBotApplication.Voice;
 using Discord;
 using Discord.Audio;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,19 +15,20 @@ using System.Text;
 using System.Threading.Tasks;
 using Victoria;
 using Victoria.Enums;
+using Victoria.EventArgs;
 using Victoria.Responses.Search;
 
 namespace ConstantBotApplication.Modules.Interactions;
 
 [EnabledInDm(false)]
-[Group("player", "Music player")]
+[Group("music", "Music player")]
 public class MusicModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly LavaNode lavaNode;
+    private readonly LavaNode<CustomLavaPlayer> lavaNode;
     private readonly BotContext context;
     private static readonly IEnumerable<int> Range = Enumerable.Range(1900, 2000);
 
-    public MusicModule(LavaNode lavaNode, BotContext context)
+    public MusicModule(LavaNode<CustomLavaPlayer> lavaNode, BotContext context)
     {
         this.lavaNode = lavaNode;
         this.context = context;
@@ -41,18 +44,21 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        if (lavaNode.HasPlayer(Context.Guild))
+        if (lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            if (lavaNode.GetPlayer(Context.Guild).VoiceChannel.Id != voiceState.VoiceChannel.Id)
+            if (!player.IsConnected)
+            {
+                await lavaNode.LeaveAsync(player.VoiceChannel);
+                player = await lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
+            }
+            else if (player.VoiceChannel.Id != voiceState.VoiceChannel.Id)
             {
                 await RespondAsync("Already connected to another channel");
                 return;
             }
 
         }
-        else await lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
-
-        var player = lavaNode.GetPlayer(Context.Guild);
+        else player = await lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
 
         var set = await context.GuildSettings.Where(i => i.GuilId == Context.Guild.Id).FirstAsync();
         if (set.Volume.HasValue) await player.UpdateVolumeAsync(set.Volume.Value);
@@ -148,7 +154,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        if (player.PlayerState != PlayerState.Playing)
+        if (player.PlayerState != PlayerState.Playing && player.PlayerState != PlayerState.Paused)
         {
             await RespondAsync("I'm not playing any tracks.");
             return;
@@ -177,7 +183,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
         await RespondAsync("Tracks shuffled");
     }
 
-    [SlashCommand("clear", "Clears the queue")]
+    [SlashCommand("clear-queue", "Clears the queue")]
     public async Task Clear()
     {
         if (!lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -223,6 +229,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             .WithColor(Color.Green)
             .WithAuthor(track.Author)
             .WithImageUrl(artwork)
+            .WithUrl(track.Url)
             .WithDescription(track.Title);
 
         await RespondAsync(embed: builder.Build());
@@ -327,10 +334,8 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
 
         var builder = new EmbedBuilder()
             .WithColor(Color.Green);
-        
-        var lavaTrack = searchResponse.Tracks.First();
 
-        if (searchResponse.Status == SearchStatus.NoMatches)
+        if (searchResponse.Status == SearchStatus.NoMatches || searchResponse.Tracks.Count == 0)
         {
             await RespondAsync("No tracks found by your request");
             return;
@@ -349,10 +354,10 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
         }
         else
         {
-            player.Queue.Enqueue(lavaTrack);
+            player.Queue.Enqueue(searchResponse.Tracks.First());
         }
 
-
+        var lavaTrack = searchResponse.Tracks.First();
         var artwork = await lavaTrack.FetchArtworkAsync();
 
         builder.WithAuthor(lavaTrack.Author)
