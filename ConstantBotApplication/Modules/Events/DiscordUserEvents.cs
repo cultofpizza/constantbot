@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace ConstantBotApplication.Modules.Events
 {
-    internal class DiscordUserEvents : IDiscordUserEventHandler
+    public class DiscordUserEvents : IEventModule
     {
         private readonly BotContext _context;
         private readonly DiscordSocketClient _client;
@@ -21,6 +21,17 @@ namespace ConstantBotApplication.Modules.Events
         {
             _context = context;
             _client = client;
+        }
+
+        public void Register(DiscordSocketClient client)
+        {
+            client.UserUpdated += UserUpdated;
+            client.UserJoined += UserJoined;
+            client.UserLeft += UserLeft;
+            client.UserBanned += UserBanned;
+            client.UserUnbanned += UserUnbanned;
+            client.UserVoiceStateUpdated += UserVoiceStateUpdated;
+            client.GuildMemberUpdated += GuildMemberUpdated;
         }
 
         public async Task GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> userBefore, SocketGuildUser userAfter)

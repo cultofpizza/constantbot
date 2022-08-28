@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ConstantBotApplication.Modules.Events;
 
-public class DiscordRoleEvents : IDiscordRoleEventHandler
+public class DiscordRoleEvents : IEventModule
 {
     private readonly BotContext _context;
     private readonly DiscordSocketClient _client;
@@ -18,6 +18,13 @@ public class DiscordRoleEvents : IDiscordRoleEventHandler
     {
         _context = context;
         _client = client;
+    }
+
+    public void Register(DiscordSocketClient client)
+    {
+        client.RoleCreated += RoleCreated;
+        client.RoleDeleted += RoleDeleted;
+        client.RoleUpdated += RoleUpdated;
     }
 
     public async Task RoleCreated(SocketRole role)

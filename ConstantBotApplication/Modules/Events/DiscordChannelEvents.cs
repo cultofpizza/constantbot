@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ConstantBotApplication.Modules.Events;
 
-public class DiscordChannelEvents : IDiscordChannelEventHandler
+public class DiscordChannelEvents : IEventModule
 {
     private readonly BotContext _context;
     private readonly DiscordSocketClient _client;
@@ -18,6 +18,13 @@ public class DiscordChannelEvents : IDiscordChannelEventHandler
     {
         _context = context;
         _client = client;
+    }
+
+    public void Register(DiscordSocketClient client)
+    {
+        client.ChannelCreated += ChannelCreated;
+        client.ChannelDestroyed += ChannelDeleted;
+        client.ChannelUpdated += ChannelUpdated;
     }
 
     public async Task ChannelCreated(SocketChannel ch)

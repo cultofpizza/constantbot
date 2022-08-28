@@ -34,10 +34,8 @@ namespace ConstantBotApplication
 			.AddBotContext()
 			.AddDefaultJsonOptions()
 			.AddVoiceManagement()
+			.AddEventModules()
 			.AddSingleton<Handlers.EventHandler>()
-			.AddSingleton<IDiscordUserEventHandler,DiscordUserEvents>()
-			.AddSingleton<IDiscordRoleEventHandler,DiscordRoleEvents>()
-			.AddSingleton<IDiscordChannelEventHandler,DiscordChannelEvents>()
 			.AddSingleton<CommandHandler>()
 			.AddSingleton<InteractionsHandler>()
 			.BuildServiceProvider();
