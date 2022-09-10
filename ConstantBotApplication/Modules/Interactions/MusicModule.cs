@@ -60,7 +60,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
         }
         else player = await lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
 
-        var set = await context.GuildSettings.Where(i => i.GuilId == Context.Guild.Id).FirstAsync();
+        var set = await context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstAsync();
         if (set.Volume.HasValue) await player.UpdateVolumeAsync(set.Volume.Value);
 
         var searchResponse = await lavaNode.SearchAsync(searchType, track);
@@ -315,7 +315,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
         await player.UpdateVolumeAsync(volume);
         await RespondAsync("Volume updated");
 
-        var set = await context.GuildSettings.Where(i => i.GuilId == Context.Guild.Id).FirstAsync();
+        var set = await context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstAsync();
         set.Volume = volume;
         await context.SaveChangesAsync();
     }

@@ -43,13 +43,12 @@ public static class DatabaseExtensions
 
     static async Task EnsureSettingsCreatedAsync(this BotContext context, SocketGuild guild)
     {
-        if (0 == await context.GuildSettings.Where(i => i.GuilId == guild.Id).CountAsync())
+        if (0 == await context.Guilds.Where(i => i.GuildId == guild.Id).CountAsync())
         {
-            await context.GuildSettings.AddAsync(new GuildSettings()
+            await context.Guilds.AddAsync(new Guild()
             {
-                GuilId = guild.Id,
-                MonitorChannelId = null,
-                MonitoringEnable = false
+                GuildId = guild.Id,
+                MonitorChannelId = null
             });
             await context.SaveChangesAsync();
         }

@@ -36,8 +36,8 @@ namespace ConstantBotApplication.Modules.Events
 
         public async Task GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> userBefore, SocketGuildUser userAfter)
         {
-            var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == userAfter.Guild.Id).SingleOrDefaultAsync();
-            if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == userAfter.Guild.Id).SingleOrDefaultAsync();
+            if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
             var builder = new EmbedBuilder()
                 .WithAuthor(userAfter)
@@ -64,7 +64,7 @@ namespace ConstantBotApplication.Modules.Events
                     //else
                     //    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl()); Old avatars(except default) are not accessible
                     if (userAfter.AvatarId != null)
-                        builder.WithImageUrl(userAfter.GetAvatarUrl());
+                        builder.WithImageUrl(userAfter.GetAvatarUrl(size: 4096));
                     else
                         builder.WithImageUrl(userAfter.GetDefaultAvatarUrl());
                 }
@@ -80,8 +80,8 @@ namespace ConstantBotApplication.Modules.Events
 
         public async Task UserBanned(SocketUser user, SocketGuild guild)
         {
-            var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guild.Id).SingleOrDefaultAsync();
-            if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guild.Id).SingleOrDefaultAsync();
+            if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
             var builder = new EmbedBuilder()
                 .WithAuthor(user)
@@ -99,8 +99,8 @@ namespace ConstantBotApplication.Modules.Events
 
         public async Task UserJoined(SocketGuildUser user)
         {
-            var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == user.Guild.Id).SingleOrDefaultAsync();
-            if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == user.Guild.Id).SingleOrDefaultAsync();
+            if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
             var builder = new EmbedBuilder()
                 .WithAuthor(user)
@@ -118,8 +118,8 @@ namespace ConstantBotApplication.Modules.Events
 
         public async Task UserLeft(SocketGuild guild, SocketUser user)
         {
-            var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guild.Id).SingleOrDefaultAsync();
-            if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guild.Id).SingleOrDefaultAsync();
+            if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
             var builder = new EmbedBuilder()
                 .WithAuthor(user)
@@ -137,8 +137,8 @@ namespace ConstantBotApplication.Modules.Events
 
         public async Task UserUnbanned(SocketUser user, SocketGuild guild)
         {
-            var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guild.Id).SingleOrDefaultAsync();
-            if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guild.Id).SingleOrDefaultAsync();
+            if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
             var builder = new EmbedBuilder()
                 .WithAuthor(user)
@@ -157,11 +157,11 @@ namespace ConstantBotApplication.Modules.Events
             HashSet<ulong> guildIds = new HashSet<ulong>();
             foreach (var item in userBefore.MutualGuilds.Select(i => i.Id).ToArray()) guildIds.Add(item);
             foreach (var item in userAfter.MutualGuilds.Select(i => i.Id).ToArray()) guildIds.Add(item);
-            var settings = await _context.GuildSettings.ToListAsync();
+            var settings = await _context.Guilds.ToListAsync();
             foreach (var item in settings)
             {
-                if (!guildIds.Contains(item.GuilId)) continue;
-                if (!item.MonitoringEnable || !item.MonitorChannelId.HasValue) guildIds.Remove(item.GuilId);
+                if (!guildIds.Contains(item.GuildId)) continue;
+                if (!item.UserMonitoring || !item.MonitorChannelId.HasValue) guildIds.Remove(item.GuildId);
             }
 
             var builder = new EmbedBuilder()
@@ -171,18 +171,18 @@ namespace ConstantBotApplication.Modules.Events
                 .WithColor(Color.Gold)
                 .WithDescription($"{Emoji.Parse(":detective:")} ``{userAfter.Username}`` has updated profile")
                 .AddField("User", userAfter.Mention);
-            if (userBefore.AvatarId != userAfter.AvatarId)
-            {
-                //builder.AddField("Avatar before", userBefore.AvatarId != null ? $"[Avatar]({userBefore.GetAvatarUrl(size: 512)})" : $"[Avatar]({userBefore.GetDefaultAvatarUrl()})");
-                //if (userAfter.AvatarId != null)
-                //    builder.WithImageUrl(userAfter.GetAvatarUrl());
-                //else
-                //    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl()); Old avatars(except default) are not accessible
-                if (userAfter.AvatarId != null)
-                    builder.WithImageUrl(userAfter.GetAvatarUrl(size: 4096));
-                else
-                    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl());
-            }
+            //if (userBefore.AvatarId != userAfter.AvatarId)
+            //{
+            //    //builder.AddField("Avatar before", userBefore.AvatarId != null ? $"[Avatar]({userBefore.GetAvatarUrl(size: 512)})" : $"[Avatar]({userBefore.GetDefaultAvatarUrl()})");
+            //    //if (userAfter.AvatarId != null)
+            //    //    builder.WithImageUrl(userAfter.GetAvatarUrl());
+            //    //else
+            //    //    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl()); Old avatars(except default) are not accessible
+            //    if (userAfter.AvatarId != null)
+            //        builder.WithImageUrl(userAfter.GetAvatarUrl(size: 4096));
+            //    else
+            //        builder.WithImageUrl(userAfter.GetDefaultAvatarUrl());
+            //}
             if (userBefore.Username != userAfter.Username)
                 builder.AddField("Username before", $"``{userBefore.Username}``", true)
                 .AddField("After", $"``{userAfter.Username}``", true);// Both fields must be in-line=true to be inline?!
@@ -192,7 +192,7 @@ namespace ConstantBotApplication.Modules.Events
                 var embed = builder.Build();
                 foreach (var item in guildIds)
                 {
-                    var channel = (SocketTextChannel)await _client.GetChannelAsync(settings.Where(i => i.GuilId == item).FirstOrDefault().MonitorChannelId.Value);
+                    var channel = (SocketTextChannel)await _client.GetChannelAsync(settings.Where(i => i.GuildId == item).FirstOrDefault().MonitorChannelId.Value);
                     await channel.SendMessageAsync(embed: embed);
                 }
             }
@@ -202,8 +202,8 @@ namespace ConstantBotApplication.Modules.Events
         {
             if (stateBefore.VoiceChannel == stateAfter.VoiceChannel) return;
             var guildId = stateBefore.VoiceChannel != null ? stateBefore.VoiceChannel.Guild.Id : stateAfter.VoiceChannel.Guild.Id;
-            var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guildId).SingleOrDefaultAsync();
-            if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildId).SingleOrDefaultAsync();
+            if (!guildSettings.VoiceMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
             var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             var builder = new EmbedBuilder()
                 .WithAuthor(user)

@@ -35,8 +35,8 @@ public class DiscordReactionEvents : IEventModule
         var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
         if (guildChannel == null || guildMessage == null) return;
 
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guildChannel.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
         var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
         var builder = new EmbedBuilder()
@@ -58,8 +58,8 @@ public class DiscordReactionEvents : IEventModule
         var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
         if (guildChannel == null || guildMessage == null) return;
 
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guildChannel.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
         var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
         var builder = new EmbedBuilder()
@@ -81,12 +81,12 @@ public class DiscordReactionEvents : IEventModule
         var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
         if (guildChannel == null || guildMessage == null) return;
 
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guildChannel.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
         var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
         var builder = new EmbedBuilder()
-                .WithAuthor(guildMessage.Author)
+                .WithAuthor(reaction.User.Value)
                 .WithFooter($"ID: {guildMessage.Id}")
                 .WithCurrentTimestamp()
                 .WithColor(Color.Red)
@@ -104,12 +104,12 @@ public class DiscordReactionEvents : IEventModule
         var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
         if(guildChannel == null || guildMessage == null) return;
         
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == guildChannel.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
         var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
         var builder = new EmbedBuilder()
-                .WithAuthor(guildMessage.Author)
+                .WithAuthor(reaction.User.Value)
                 .WithFooter($"ID: {guildMessage.Id}")
                 .WithCurrentTimestamp()
                 .WithColor(Color.Green)

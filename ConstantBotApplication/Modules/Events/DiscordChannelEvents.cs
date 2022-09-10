@@ -31,8 +31,8 @@ public class DiscordChannelEvents : IEventModule
     {
         var channel = ch as SocketGuildChannel;
         if (channel == null) return;
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == channel.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == channel.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.ChannelMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
         var builder = new EmbedBuilder()
                 .WithAuthor(channel.Guild.Name, channel.Guild.IconUrl)
@@ -96,8 +96,8 @@ public class DiscordChannelEvents : IEventModule
     {
         var channel = ch as SocketGuildChannel;
         if (channel == null) return;
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == channel.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == channel.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.ChannelMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
         var builder = new EmbedBuilder()
                 .WithAuthor(channel.Guild.Name, channel.Guild.IconUrl)
@@ -115,8 +115,8 @@ public class DiscordChannelEvents : IEventModule
         var channelBefore = chBefore as SocketGuildChannel;
         var channelAfter = chAfter as SocketGuildChannel;
         if (channelBefore == null || channelAfter == null) return;
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == channelAfter.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == channelAfter.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.ChannelMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
         var builder = new EmbedBuilder()
                 .WithAuthor(channelAfter.Guild.Name, channelAfter.Guild.IconUrl)

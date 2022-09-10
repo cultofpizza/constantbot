@@ -24,7 +24,7 @@ namespace ConstantBotApplication.Modules.Interactions
         [SlashCommand("report","Creates report for moderators")]
         public async Task Report()
         {
-            if(await context.GuildSettings.Where(i => i.GuilId == Context.Guild.Id && i.ReportChannelId != null).CountAsync() == 0)
+            if(await context.Guilds.Where(i => i.GuildId == Context.Guild.Id && i.ReportChannelId != null).CountAsync() == 0)
             {
                 await RespondAsync("Reporting not enabled on this server", ephemeral: true);
                 return;
@@ -35,7 +35,7 @@ namespace ConstantBotApplication.Modules.Interactions
         [ModalInteraction("channel_report")]
         public async Task SaveReport(ReportModal modal)
         {
-            var channel = Context.Guild.GetTextChannel((await context.GuildSettings.Where(i => i.GuilId == Context.Guild.Id && i.ReportChannelId != null).FirstAsync()).ReportChannelId.Value);
+            var channel = Context.Guild.GetTextChannel((await context.Guilds.Where(i => i.GuildId == Context.Guild.Id && i.ReportChannelId != null).FirstAsync()).ReportChannelId.Value);
 
             var builder = new EmbedBuilder();
             builder.WithAuthor(Context.User)

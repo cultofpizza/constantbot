@@ -29,8 +29,8 @@ public class DiscordRoleEvents : IEventModule
 
     public async Task RoleCreated(SocketRole role)
     {
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == role.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == role.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.RolesMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
         var builder = new EmbedBuilder()
                 .WithAuthor(role.Guild.Name, role.Guild.IconUrl)
@@ -62,8 +62,8 @@ public class DiscordRoleEvents : IEventModule
 
     public async Task RoleDeleted(SocketRole role)
     {
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == role.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == role.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.RolesMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
         var builder = new EmbedBuilder()
                 .WithAuthor(role.Guild.Name, role.Guild.IconUrl)
@@ -78,8 +78,8 @@ public class DiscordRoleEvents : IEventModule
 
     public async Task RoleUpdated(SocketRole roleBefore, SocketRole roleAfter)
     {
-        var guildSettings = await _context.GuildSettings.AsQueryable().Where(i => i.GuilId == roleAfter.Guild.Id).SingleOrDefaultAsync();
-        if (!guildSettings.MonitoringEnable || !guildSettings.MonitorChannelId.HasValue) return;
+        var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == roleAfter.Guild.Id).SingleOrDefaultAsync();
+        if (!guildSettings.RolesMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
         var builder = new EmbedBuilder()
                 .WithAuthor(roleAfter.Guild.Name, roleAfter.Guild.IconUrl)

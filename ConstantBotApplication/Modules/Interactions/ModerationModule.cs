@@ -37,7 +37,7 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
     public async Task Clear(int count = 1, SocketGuildUser user = null, int maxMessages = 100)
     {
         if (maxMessages < count) maxMessages = count;
-        await DeferAsync();
+        await DeferAsync(true);
         var messages = await Context.Channel.GetMessagesAsync(maxMessages).FlattenAsync();
         messages = messages.Where(i => i.Timestamp > DateTime.UtcNow.AddDays(-14)).AsEnumerable();
         if (user != null)
@@ -45,8 +45,6 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
         messages = messages.Where(i => !(i.Flags.HasValue && i.Flags.Value.HasFlag(MessageFlags.Ephemeral))).Take(count).AsEnumerable();
         await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages, DeletionRequestOptions);
         await ModifyOriginalResponseAsync(m => m.Content = $"Deleted {messages.Count()} messages");
-        await Task.Delay(5000);
-        await DeleteOriginalResponseAsync();
     }
 
     [RequireUserPermission(GuildPermission.ManageMessages)]
@@ -60,14 +58,12 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
         }
         else
         {
-            await DeferAsync();
+            await DeferAsync(true);
             var messages = (await Context.Channel.GetMessagesAsync(message, Direction.After).FlattenAsync()).ToList();
             messages = messages.Where(i => !(i.Flags.HasValue && i.Flags.Value.HasFlag(MessageFlags.Ephemeral))).ToList();
             messages.Add(message);
             await ((ITextChannel)Context.Channel).DeleteMessagesAsync(messages, DeletionRequestOptions);
             await ModifyOriginalResponseAsync(m => m.Content = $"Deleted {messages.Count()} messages");
-            await Task.Delay(5000);
-            await DeleteOriginalResponseAsync();
         }
     }
 
@@ -75,7 +71,7 @@ public class ModerationModule : InteractionModuleBase<SocketInteractionContext>
     [SlashCommand("audit", "Returns last audit actions")]
     public async Task Audit(int count = 1)
     {
-        await DeferAsync();
+        await DeferAsync(true);
         var audit = await Context.Guild.GetAuditLogsAsync(count).FlattenAsync();
 
         var auditJson = JsonSerializer.Serialize(audit, _jsonOptions);

@@ -5,10 +5,11 @@ namespace ConstantBotApplication.Domain;
 
 public class BotContext : DbContext
 {
-    public DbSet<GuildSettings> GuildSettings { get; set; }
+    public DbSet<Guild> Guilds { get; set; }
+    public DbSet<SocialCounter> SocialCounters { get; set; }
 
-    public BotContext(DbContextOptions options) : base(options) 
-    { 
+    public BotContext(DbContextOptions options) : base(options)
+    {
         Database.Migrate();
     }
 
@@ -16,7 +17,9 @@ public class BotContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<GuildSettings>().HasKey(i=>i.GuilId);
+        modelBuilder.Entity<Guild>().HasKey(i => i.GuildId);
+
+        modelBuilder.Entity<SocialCounter>().HasKey(i => new { i.GiverId, i.TakerId });
     }
 }
 public class DesignBot : IDesignTimeDbContextFactory<BotContext>
