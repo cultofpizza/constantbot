@@ -60,6 +60,7 @@ public class SettingsModule : InteractionModuleBase<SocketInteractionContext>
 
         var entry = await _context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
         entry.MonitoringConfig = bits;
+        entry.MonitorChannelId = Context.Channel.Id;
         await _context.SaveChangesAsync();
 
         var message = (Context.Interaction as SocketMessageComponent).Message;
