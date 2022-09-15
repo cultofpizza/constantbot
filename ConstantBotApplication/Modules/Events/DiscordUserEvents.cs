@@ -63,8 +63,8 @@ namespace ConstantBotApplication.Modules.Events
                     //    builder.WithImageUrl(userAfter.GetGuildAvatarUrl());
                     //else
                     //    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl()); Old avatars(except default) are not accessible
-                    if (userAfter.AvatarId != null)
-                        builder.WithImageUrl(userAfter.GetAvatarUrl(size: 4096));
+                    if (userAfter.DisplayAvatarId != null)
+                        builder.WithImageUrl(userAfter.GetDisplayAvatarUrl(size: 4096));
                     else
                         builder.WithImageUrl(userAfter.GetDefaultAvatarUrl());
                 }

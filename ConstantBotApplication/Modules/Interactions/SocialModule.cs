@@ -92,6 +92,13 @@ public class SocialModule : InteractionModuleBase<SocketInteractionContext>
         await ModifyOriginalResponseAsync(i=>i.Embed = builder.Build());
     }
 
+    [EnabledInDm(false)]
+    [UserCommand("User Photo")]
+    public async Task GetUserAvatar(IGuildUser user)
+    {
+        await RespondAsync(user.GetDisplayAvatarUrl(size: 4096));
+    }
+
     private async Task<SocialCounter> GetOrCreateCounter(ulong giverId, ulong takerId, SocialActionType action)
     {
         var entity = await _context.SocialCounters.Where(i => i.GiverId == giverId && i.Action == action && i.TakerId == takerId).FirstOrDefaultAsync();
