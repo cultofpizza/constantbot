@@ -19,7 +19,7 @@ public class BotContext : DbContext
 
         modelBuilder.Entity<Guild>().HasKey(i => i.GuildId);
 
-        modelBuilder.Entity<SocialCounter>().HasKey(i => new { i.GiverId, i.TakerId });
+        modelBuilder.Entity<SocialCounter>().HasKey(i => new { i.GiverId, i.TakerId, i.Action });
     }
 }
 public class DesignBot : IDesignTimeDbContextFactory<BotContext>
@@ -28,7 +28,7 @@ public class DesignBot : IDesignTimeDbContextFactory<BotContext>
     {
         var builder = new DbContextOptionsBuilder<BotContext>();
 
-        builder.UseNpgsql("<connectionString>");
+        builder.UseNpgsql("User ID=postgres;Password=Const@ntTheBotPass93487;Host=178.20.47.47;Port=5432;Database=ConstantTheBot;");
 
         return new BotContext(builder.Options);
     }
