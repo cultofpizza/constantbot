@@ -35,7 +35,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("play", "Plays music")]
-    public async Task Play(string track, SearchType searchType = SearchType.YouTubeMusic)
+    public async Task Play(string track, bool searchInYouTubeMusic = false)
     {
         var voiceState = Context.User as IVoiceState;
         if (voiceState?.VoiceChannel == null)
@@ -62,6 +62,11 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
 
         var set = await context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstAsync();
         if (set.Volume.HasValue) await player.UpdateVolumeAsync(set.Volume.Value);
+
+        SearchType searchType;
+        if (track.StartsWith("http")) searchType = SearchType.Direct;
+        else if (searchInYouTubeMusic) searchType = SearchType.YouTubeMusic;
+        else searchType = SearchType.YouTube;
 
         var searchResponse = await lavaNode.SearchAsync(searchType, track);
 
@@ -321,13 +326,18 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("add", "Adds track to queue")]
-    public async Task Add(string track, SearchType searchType = SearchType.YouTubeMusic)
+    public async Task Add(string track, bool searchInYouTubeMusic = false)
     {
         if (!lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
             await RespondAsync("I'm not connected to a voice channel.");
             return;
         }
+
+        SearchType searchType;
+        if (track.StartsWith("http")) searchType = SearchType.Direct;
+        else if (searchInYouTubeMusic) searchType = SearchType.YouTubeMusic;
+        else searchType = SearchType.YouTube;
 
         var searchResponse = await lavaNode.SearchAsync(searchType, track);
         string message = string.Empty;

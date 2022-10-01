@@ -1,4 +1,6 @@
 ﻿using ConstantBotApplication.Domain;
+using ConstantBotApplication.Migrations;
+using ConstantBotApplication.Modals;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -8,6 +10,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -86,6 +89,54 @@ public class SettingsModule : InteractionModuleBase<SocketInteractionContext>
 
         await _context.SaveChangesAsync();
         await RespondAsync("Changes applied successfuly!", ephemeral: true);
+    }
+
+    [SlashCommand("social-attachments", "Configures social attachments")]
+    public async Task SetAttachments(SocialActionType actionType)
+    {
+        var attachments = await _context.SocialAttachments.Where(i => i.Action == actionType && i.GuildId == Context.Guild.Id).ToListAsync();
+
+        var urls = string.Empty;
+        foreach (var item in attachments)
+        {
+            urls += item.Url+ "\n";
+        }
+
+        var builder = new ModalBuilder()
+            .WithTitle("Attachments")
+            .WithCustomId($"social-attachments-{actionType.ToString().ToLower()}")
+            .AddTextInput("Enter attachment image urls","urls",TextInputStyle.Paragraph, "Enter urls each in new line", value: urls);
+
+        await RespondWithModalAsync(builder.Build());
+    }
+
+    [ModalInteraction("social-attachments-*",true)]
+    public async Task SetAttachmentUrls(string actionType, AttachmentModal modal)
+    {
+        actionType = string.Concat(actionType[0].ToString().ToUpper(), actionType.AsSpan(1));
+        var action = Enum.Parse<SocialActionType>(actionType);
+        var urls = modal.Urls.Split('\n');
+        await DeferAsync();
+
+        var attachments = await _context.SocialAttachments.Where(i => i.Action == action && i.GuildId == Context.Guild.Id).ToListAsync();
+
+        foreach (var item in attachments)
+        {
+            if (!urls.Contains(item.Url))
+            {
+                _context.Remove(item);
+            }
+        }
+
+        foreach (var item in urls)
+        {
+            if (attachments.Where(i=>i.Url==item).Count()==0)
+            {
+                _context.Add(new SocialAttachments { Action = action, GuildId = Context.Guild.Id, Url = item });
+            }
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     private MessageComponent GetMonitoringComponents(BitArray config)

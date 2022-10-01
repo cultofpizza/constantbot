@@ -17,7 +17,7 @@ public class CustomLavaPlayer : LavaPlayer
 
     public CustomLavaPlayer(LavaSocket lavaSocket, IVoiceChannel voiceChannel, ITextChannel textChannel) : base(lavaSocket, voiceChannel, textChannel) { }
 
-    public async Task RedrawPlayerAsync(bool addMode = false)
+    public async Task RedrawPlayerAsync()
     {
         var embedBuilder = new EmbedBuilder();
         if (Track != null)
@@ -56,22 +56,11 @@ public class CustomLavaPlayer : LavaPlayer
         componentBuilder
         .WithButton("Skip", "skip", ButtonStyle.Primary, Emoji.Parse(":track_next:"), disabled: !(Queue.Count > 0))
         .WithButton("Stop", "stop", ButtonStyle.Primary, Emoji.Parse(":stop_button:"), disabled: PlayerState == Victoria.Enums.PlayerState.Stopped || PlayerState == Victoria.Enums.PlayerState.None)
-        .WithButton("Add", "add", ButtonStyle.Primary, Emoji.Parse(":musical_note:"), disabled: addMode)
+        .WithButton("Add", "add", ButtonStyle.Primary, Emoji.Parse(":musical_note:"))
         .WithButton("Shuffle", "shuffle", ButtonStyle.Primary, Emoji.Parse(":twisted_rightwards_arrows:"), row: 1, disabled: !(Queue.Count > 0))
         .WithButton("Clear", "clear", ButtonStyle.Primary, Emoji.Parse(":wastebasket:"), row: 1, disabled: !(Queue.Count > 0))
         .WithButton("Refresh", "refresh", ButtonStyle.Primary, Emoji.Parse(":arrows_counterclockwise:"), row: 1)
         .WithButton("Leave", "leave", ButtonStyle.Danger, Emoji.Parse(":door:"), row: 1);
-
-        if (addMode)
-            componentBuilder.WithSelectMenu(new SelectMenuBuilder("searchtype", new List<SelectMenuOptionBuilder>
-            {
-                new SelectMenuOptionBuilder("YouTube","youtube","Search will be performed in YouTube"),
-                new SelectMenuOptionBuilder("YouTube Music","yt-music","Search will be performed in YouTube Music"),
-                new SelectMenuOptionBuilder("SoundCloud","soundcloud","Search will be performed in SoundCloud"),
-                new SelectMenuOptionBuilder("Direct","direct","No search will be performed. Provide direct link"),
-                new SelectMenuOptionBuilder("Cancel","cancel","Abort adding tracks to queue"),
-
-            },"Search type"),2);
 
         if (ChatPlayer != null)
             await ChatPlayer.ModifyAsync(m =>

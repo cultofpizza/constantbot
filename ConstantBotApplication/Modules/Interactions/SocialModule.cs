@@ -8,53 +8,29 @@ using System.Threading.Tasks;
 using ConstantBotApplication.Domain;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using static System.Collections.Specialized.BitVector32;
 
 namespace ConstantBotApplication.Modules.Interactions;
 
 public class SocialModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly BotContext _context;
+    private readonly Random _random;
 
     public SocialModule(BotContext context)
     {
         _context = context;
+        _random = new Random();
     }
 
     [SlashCommand("cookie", "Give your friend a cookie")]
-    public async Task Cookie(SocketGuildUser user)
-    {
-        var counter = await GetOrCreateCounter(Context.User.Id, user.Id, SocialActionType.Cookies);
+    public Task Cookie(SocketGuildUser user) => Social(SocialActionType.Cookies, Context.User as SocketGuildUser, user);
 
-        counter.Count++;
-
-        await RespondAsync($"You gave {user.Mention} a cookie {Emoji.Parse(":cookie:")}! That's {counter.Count} cookies now!");
-
-        await _context.SaveChangesAsync();
-    }
-    // TODO: Add gifs
     [SlashCommand("slap", "Give your friend a slap")]
-    public async Task Slap(SocketGuildUser user)
-    {
-        var counter = await GetOrCreateCounter(Context.User.Id, user.Id, SocialActionType.Slaps);
-
-        counter.Count++;
-
-        await RespondAsync($"You gave {user.Mention} a slap! That's {counter.Count} slaps now!\nGIFs WIP!");
-
-        await _context.SaveChangesAsync();
-    }
+    public Task Slap(SocketGuildUser user) => Social(SocialActionType.Slaps, Context.User as SocketGuildUser, user);
 
     [SlashCommand("hug", "Give your friend a hug")]
-    public async Task Hug(SocketGuildUser user)
-    {
-        var counter = await GetOrCreateCounter(Context.User.Id, user.Id, SocialActionType.Hugs);
-
-        counter.Count++;
-
-        await RespondAsync($"You gave {user.Mention} a hug! That's {counter.Count} hugs now!\nGIFs WIP!");
-
-        await _context.SaveChangesAsync();
-    }
+    public Task Hug(SocketGuildUser user) => Social(SocialActionType.Hugs, Context.User as SocketGuildUser, user);
 
     [SlashCommand("stats", "Shows how many social actions were performed")]
     public async Task Stats(SocialActionType action, IUser user = null)
@@ -89,7 +65,7 @@ public class SocialModule : InteractionModuleBase<SocketInteractionContext>
             .WithTitle(action.ToString())
             .WithDescription(table);
 
-        await ModifyOriginalResponseAsync(i=>i.Embed = builder.Build());
+        await ModifyOriginalResponseAsync(i => i.Embed = builder.Build());
     }
 
     [EnabledInDm(false)]
@@ -113,7 +89,7 @@ public class SocialModule : InteractionModuleBase<SocketInteractionContext>
 
     private async Task<List<SocialCounter>> GetStats(ulong userId, SocialActionType actionType)
     {
-        var entity = await _context.SocialCounters.Where(i => (i.TakerId == userId || i.GiverId == userId)&&i.Action==actionType).ToListAsync();
+        var entity = await _context.SocialCounters.Where(i => (i.TakerId == userId || i.GiverId == userId) && i.Action == actionType).ToListAsync();
         return entity;
     }
 
@@ -197,5 +173,55 @@ public class SocialModule : InteractionModuleBase<SocketInteractionContext>
         table += "```";
 
         return table;
+    }
+
+    private async Task Social(SocialActionType actionType, SocketGuildUser giver, SocketGuildUser taker)
+    {
+        var counter = await GetOrCreateCounter(giver.Id, taker.Id, actionType);
+        counter.Count++;
+
+        string plural = actionType.ToString().ToLower();
+        string singular = plural.Substring(0, plural.Length - 1);
+
+        var attachments = await _context.SocialAttachments.Where(i => i.GuildId == Context.Guild.Id && i.Action == actionType).ToListAsync();
+
+        if (attachments.Count == 0)
+            await RespondAsync(string.Format($"You {action[(int)actionType]}! That's {counter.Count} {(IsPlural(counter.Count)?plural:singular)} now!", taker.Mention));
+        else
+        {
+            var attachment = attachments[_random.Next(attachments.Count)];
+
+            var builder = new EmbedBuilder()
+                .WithTitle(string.Format($"You {action[(int)actionType]}", taker.DisplayName))
+                .WithDescription(string.Format($"*{giver.Mention} {actionThirdPerson[(int)actionType]}*", taker.Mention))
+                .WithImageUrl(attachment.Url)
+                .WithFooter($"That's {counter.Count} {plural} now!");
+
+            await RespondAsync(embed: builder.Build());
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private string[] action =
+    {
+        "gave {0} a cookie",
+        "slap {0}",
+        "hug {0}"
+    };
+    private string[] actionThirdPerson =
+    {
+        "gives {0} a cookie",
+        "slaps {0}",
+        "hugs {0}"
+    };
+
+    private bool IsPlural(int count)
+    {
+        string c = count.ToString();
+        if (c[c.Length - 1] == '1')
+            if(c.Length > 1 && c[c.Length - 2] == '1') return true;
+            else return false;
+        else return true;
     }
 }

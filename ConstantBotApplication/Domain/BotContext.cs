@@ -7,6 +7,7 @@ public class BotContext : DbContext
 {
     public DbSet<Guild> Guilds { get; set; }
     public DbSet<SocialCounter> SocialCounters { get; set; }
+    public DbSet<SocialAttachments> SocialAttachments { get; set; }
 
     public BotContext(DbContextOptions options) : base(options)
     {
@@ -28,7 +29,7 @@ public class DesignBot : IDesignTimeDbContextFactory<BotContext>
     {
         var builder = new DbContextOptionsBuilder<BotContext>();
 
-        builder.UseNpgsql("User ID=postgres;Password=Const@ntTheBotPass93487;Host=178.20.47.47;Port=5432;Database=ConstantTheBot;");
+        builder.UseNpgsql("<connectionString>");
 
         return new BotContext(builder.Options);
     }

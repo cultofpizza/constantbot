@@ -5,6 +5,7 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,7 +93,7 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
     }
 
     [SlashCommand("play", "Plays music and shows player")]
-    public async Task Play(string track, SearchType searchType)
+    public async Task Play(string track, bool searchInYouTubeMusic = false)
     {
         var voiceState = Context.User as IVoiceState;
         if (voiceState?.VoiceChannel == null)
@@ -119,6 +120,11 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
 
         var set = await context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstAsync();
         if (set.Volume.HasValue) await player.UpdateVolumeAsync(set.Volume.Value);
+
+        SearchType searchType;
+        if (track.StartsWith("http")) searchType = SearchType.Direct;
+        else if (searchInYouTubeMusic) searchType = SearchType.YouTubeMusic;
+        else searchType = SearchType.YouTube;
 
         var searchResponse = await lavaNode.SearchAsync(searchType, track);
 
@@ -270,8 +276,12 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        await player.RedrawPlayerAsync(true);
-        await RespondAsync();
+        var builder = new ModalBuilder()
+        .WithTitle("Search")
+            .WithCustomId("addbyclick")
+            .AddTextInput("Name or url of track", "track");
+
+        await RespondWithModalAsync(builder.Build());
     }
 
     [ComponentInteraction("shuffle")]
@@ -337,49 +347,20 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
         await RespondAsync();
     }
 
-    [ComponentInteraction("searchtype")]
-    public async Task AddAfterSelecting(string value)
+    [ModalInteraction("addbyclick")]
+    public Task AddByClick(SearchModal modal) => AddToQueue(modal.Track);
+
+    private async Task AddToQueue(string track)
     {
         if (!lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
             await RespondAsync("I'm not connected to a voice channel.");
             return;
         }
-        var voiceState = Context.User as IVoiceState;
-        if (voiceState == null || player.VoiceChannel.Id != voiceState.VoiceChannel.Id)
-        {
-            await RespondAsync("You need to be connected to channel with me");
-            return;
-        }
 
-        var builder = new ModalBuilder()
-            .WithTitle("Search")
-            .WithCustomId("addby:" + value)
-            .AddTextInput("Name or url of track", "track");
-
-        await player.RedrawPlayerAsync();
-        if (value != "cancel")
-            await RespondWithModalAsync(builder.Build());
-        else
-            await RespondAsync();
-    }
-
-    [ModalInteraction("addby:yt-music")]
-    public Task AddAfterTypingYtMusic(SearchModal modal) => AddToQueue(SearchType.YouTubeMusic, modal.Track);
-    [ModalInteraction("addby:youtube")]
-    public Task AddAfterTypingYt(SearchModal modal) => AddToQueue(SearchType.YouTube, modal.Track);
-    [ModalInteraction("addby:soundcloud")]
-    public Task AddAfterTypingSc(SearchModal modal) => AddToQueue(SearchType.SoundCloud, modal.Track);
-    [ModalInteraction("addby:direct")]
-    public Task AddAfterTypingDirect(SearchModal modal) => AddToQueue(SearchType.Direct, modal.Track);
-
-    private async Task AddToQueue(SearchType searchType, string track)
-    {
-        if (!lavaNode.TryGetPlayer(Context.Guild, out var player))
-        {
-            await RespondAsync("I'm not connected to a voice channel.");
-            return;
-        }
+        SearchType searchType;
+        if (track.StartsWith("http")) searchType = SearchType.Direct;
+        else searchType = SearchType.YouTube;
 
         var searchResponse = await lavaNode.SearchAsync(searchType, track);
 

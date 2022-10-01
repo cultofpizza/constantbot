@@ -2,6 +2,7 @@
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +28,8 @@ public static class VoiceExtensions
             Authorization = lavalinkConnectionStrings[1],
             IsSsl = false,
             EnableResume = true,
-            Port =  ushort.Parse(lavalinkConnectionStrings[0].Split(':')[1])
+            Port =  ushort.Parse(lavalinkConnectionStrings[0].Split(':')[1]),
+            
         };
 
         services.AddSingleton(options)
@@ -51,6 +53,7 @@ public static class VoiceExtensions
 
     private static async Task OnTrackEnded(TrackEndedEventArgs args)
     {
+        Log.Information("OnTrackEnded event called");
         if (args.Reason == TrackEndReason.Replaced || args.Reason == TrackEndReason.Stopped) return;
 
         if (args.Player.Queue.Count==0)
@@ -75,13 +78,6 @@ public static class VoiceExtensions
 
 
         var artwork = await player.Track.FetchArtworkAsync();
-
-        var builder = new EmbedBuilder()
-            .WithColor(Color.Green)
-            .WithAuthor(player.Track.Author)
-            .WithImageUrl(artwork)
-            .WithUrl(player.Track.Url)
-            .WithTitle(player.Track.Title);
 
         await player.RedrawPlayerAsync();
     }
