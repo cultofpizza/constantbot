@@ -2,7 +2,7 @@
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,8 +10,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Victoria;
-using Victoria.Enums;
-using Victoria.EventArgs;
+using Victoria.Node;
+using Victoria.Node.EventArgs;
+using Victoria.Player;
 
 namespace ConstantBotApplication.Extensions;
 
@@ -21,28 +22,25 @@ public static class VoiceExtensions
     public static IServiceCollection AddVoiceManagement(this IServiceCollection services)
     {
         string[] lavalinkConnectionStrings = Environment.GetEnvironmentVariable("lavalink").Split(';');
-
-        var options = new LavaConfig
+        var options = new NodeConfiguration
         {
             Hostname = lavalinkConnectionStrings[0].Split(':')[0],
             Authorization = lavalinkConnectionStrings[1],
-            IsSsl = false,
+            IsSecure = false,
             EnableResume = true,
             Port =  ushort.Parse(lavalinkConnectionStrings[0].Split(':')[1]),
             
         };
-
-        services.AddSingleton(options)
-            .AddSingleton<LavaNode<CustomLavaPlayer>>();
         
+        services.AddSingleton(options)
+            .AddSingleton<LavaNode<CustomLavaPlayer,LavaTrack>>();
         return services;
     }
 
     public static async Task<IServiceProvider> InitializeVoiceManagmentAsync(this IServiceProvider services)
     {
-        var audioService = services.GetRequiredService<LavaNode<CustomLavaPlayer>>();
-        audioService.OnLog += Logger.LogAsync;
-        audioService.OnTrackEnded += OnTrackEnded;
+        var audioService = services.GetRequiredService<LavaNode<CustomLavaPlayer, LavaTrack>>();
+        audioService.OnTrackEnd += OnTrackEnded;
         await audioService.ConnectAsync();
 
         var manager = new Thread(async _ => await PlayerManager(audioService));
@@ -51,18 +49,18 @@ public static class VoiceExtensions
         return services;
     }
 
-    private static async Task OnTrackEnded(TrackEndedEventArgs args)
+    private static async Task OnTrackEnded(TrackEndEventArg<CustomLavaPlayer, LavaTrack> args)
     {
-        Log.Information("OnTrackEnded event called");
+        args.Player.logger.LogInformation($"Track {args.Track.Title} ended");
         if (args.Reason == TrackEndReason.Replaced || args.Reason == TrackEndReason.Stopped) return;
 
-        if (args.Player.Queue.Count==0)
+        if (args.Player.Vueue.Count==0)
         {
             return;
         }
 
         var player = args.Player as CustomLavaPlayer;
-        if (!player.Queue.TryDequeue(out var queueable))
+        if (!player.Vueue.TryDequeue(out var queueable))
         {
             await player.RedrawPlayerAsync();
             return;
@@ -82,7 +80,7 @@ public static class VoiceExtensions
         await player.RedrawPlayerAsync();
     }
 
-    public static async Task PlayerManager(LavaNode<CustomLavaPlayer> lavaNode)
+    public static async Task PlayerManager(LavaNode<CustomLavaPlayer, LavaTrack> lavaNode)
     {
         while (true)
         {

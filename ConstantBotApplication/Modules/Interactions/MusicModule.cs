@@ -14,8 +14,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Victoria;
-using Victoria.Enums;
-using Victoria.EventArgs;
+using Victoria.Node;
+using Victoria.Player;
 using Victoria.Responses.Search;
 
 namespace ConstantBotApplication.Modules.Interactions;
@@ -24,11 +24,11 @@ namespace ConstantBotApplication.Modules.Interactions;
 [Group("music", "Music player")]
 public class MusicModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly LavaNode<CustomLavaPlayer> lavaNode;
+    private readonly LavaNode<CustomLavaPlayer, LavaTrack> lavaNode;
     private readonly BotContext context;
     private static readonly IEnumerable<int> Range = Enumerable.Range(1900, 2000);
 
-    public MusicModule(LavaNode<CustomLavaPlayer> lavaNode, BotContext context)
+    public MusicModule(LavaNode<CustomLavaPlayer, LavaTrack> lavaNode, BotContext context)
     {
         this.lavaNode = lavaNode;
         this.context = context;
@@ -61,7 +61,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
         else player = await lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
 
         var set = await context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstAsync();
-        if (set.Volume.HasValue) await player.UpdateVolumeAsync(set.Volume.Value);
+        if (set.Volume.HasValue) await player.SetVolumeAsync(set.Volume.Value);
 
         SearchType searchType;
         if (track.StartsWith("http")) searchType = SearchType.Direct;
@@ -89,7 +89,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
         {
             message = "Added tracks from playlist to queue";
             builder.AddField("Playlist", searchResponse.Playlist.Name);
-            player.Queue.Enqueue(searchResponse.Tracks.Skip(1));
+            player.Vueue.Enqueue(searchResponse.Tracks.Skip(1));
         }
         var lavaTrack = searchResponse.Tracks.First();
 
@@ -177,13 +177,13 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync("I'm not connected to a voice channel.");
             return;
         }
-        if (player.Queue.Count == 0)
+        if (player.Vueue.Count == 0)
         {
             await RespondAsync("I have tracks in queue.");
             return;
         }
 
-        player.Queue.Shuffle();
+        player.Vueue.Shuffle();
 
         await RespondAsync("Tracks shuffled");
     }
@@ -196,13 +196,13 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync("I'm not connected to a voice channel.");
             return;
         }
-        if (player.Queue.Count == 0)
+        if (player.Vueue.Count == 0)
         {
             await RespondAsync("I have tracks in queue.");
             return;
         }
 
-        player.Queue.Clear();
+        player.Vueue.Clear();
 
         await RespondAsync("Queue cleared");
     }
@@ -215,7 +215,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync("I'm not connected to a voice channel.");
             return;
         }
-        if (!player.Queue.TryDequeue(out var queueable))
+        if (!player.Vueue.TryDequeue(out var queueable))
         {
             await RespondAsync("Queue completed!");
             return;
@@ -317,7 +317,7 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        await player.UpdateVolumeAsync(volume);
+        await player.SetVolumeAsync(volume);
         await RespondAsync("Volume updated");
 
         var set = await context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstAsync();
@@ -358,13 +358,13 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
         else if (searchResponse.Status == SearchStatus.PlaylistLoaded)
         {
             builder.AddField("Playlist", searchResponse.Playlist.Name);
-            player.Queue.Enqueue(searchResponse.Tracks);
+            player.Vueue.Enqueue(searchResponse.Tracks);
 
             message = "Added tracks from playlist to queue";
         }
         else
         {
-            player.Queue.Enqueue(searchResponse.Tracks.First());
+            player.Vueue.Enqueue(searchResponse.Tracks.First());
         }
 
         var lavaTrack = searchResponse.Tracks.First();
@@ -389,14 +389,14 @@ public class MusicModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync("I'm not connected to a voice channel.");
             return;
         }
-        if (player.Queue.Count == 0)
+        if (player.Vueue.Count == 0)
         {
             await RespondAsync("I have no tracks in queue");
             return;
         }
 
         var builder = new EmbedBuilder();
-        var queue = player.Queue.ToList();
+        var queue = player.Vueue.ToList();
         string queueString = string.Empty;
 
         for (int i = 0; i < queue.Count; i++)

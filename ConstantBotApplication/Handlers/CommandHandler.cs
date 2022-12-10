@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,14 +14,16 @@ namespace ConstantBotApplication.Handlers
     public class CommandHandler
     {
         private readonly DiscordSocketClient _client;
+        private readonly ILogger<CommandHandler> logger;
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
 
-        public CommandHandler(IServiceProvider services, CommandService commands, DiscordSocketClient client)
+        public CommandHandler(IServiceProvider services, CommandService commands, DiscordSocketClient client, ILogger<CommandHandler> logger)
         {
             _commands = commands;
             _services = services;
             _client = client;
+            this.logger = logger;
         }
 
         public async Task InitializeAsync()
@@ -78,7 +81,7 @@ namespace ConstantBotApplication.Handlers
                 else if (result.Error == CommandError.UnknownCommand) { }
                 else
                 {
-                    await Logger.LogAsync(new LogMessage(LogSeverity.Error, "TextCommand", result.ErrorReason));
+                    logger.LogError($"Command error: {result.ErrorReason}");
                 }
 
             }

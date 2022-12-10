@@ -6,6 +6,7 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using System;
 using System.Threading.Tasks;
@@ -22,10 +23,9 @@ namespace ConstantBotApplication
         public async Task MainAsync()
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .Enrich.FromLogContext()
-                .WriteTo.Console()
-                .CreateLogger();
+              .Enrich.FromLogContext()
+              .WriteTo.Console()
+              .CreateLogger();
 
             var _config = new DiscordSocketConfig
             {
@@ -41,8 +41,34 @@ namespace ConstantBotApplication
             var services = new Startup(client: _client).BuildServiceProvider();
 
             var _interactionService = new InteractionService(_client);
-
-            _client.Log += Logger.LogAsync;
+            Microsoft.Extensions.Logging.ILogger clientLogger = services.GetService<ILogger<DiscordSocketClient>>();
+            _client.Log += message =>
+            {
+                switch (message.Severity)
+                {
+                    case LogSeverity.Critical:
+                        clientLogger.LogCritical(message.Exception, message.Message);
+                        break;
+                    case LogSeverity.Error:
+                        clientLogger.LogError(message.Exception, message.Message);
+                        break;
+                    case LogSeverity.Warning:
+                        clientLogger.LogWarning(message.Exception, message.Message);
+                        break;
+                    case LogSeverity.Info:
+                        clientLogger.LogInformation(message.Exception, message.Message);
+                        break;
+                    case LogSeverity.Verbose:
+                        clientLogger.LogTrace(message.Exception, message.Message);
+                        break;
+                    case LogSeverity.Debug:
+                        clientLogger.LogDebug(message.Exception, message.Message);
+                        break;
+                    default:
+                        break;
+                }
+                return Task.CompletedTask;
+            };
             await _client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("token"));
             await _client.StartAsync();
 

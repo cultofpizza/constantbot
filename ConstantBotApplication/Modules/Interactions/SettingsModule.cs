@@ -1,5 +1,4 @@
 ﻿using ConstantBotApplication.Domain;
-using ConstantBotApplication.Migrations;
 using ConstantBotApplication.Modals;
 using Discord;
 using Discord.Interactions;

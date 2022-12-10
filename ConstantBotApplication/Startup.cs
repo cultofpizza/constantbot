@@ -8,6 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using ConstantBotApplication.Extensions;
 using ConstantBotApplication.Voice;
+using Microsoft.Extensions.Logging;
+using Serilog;
+
 namespace ConstantBotApplication
 {
     internal class Startup
@@ -34,6 +37,8 @@ namespace ConstantBotApplication
 			.AddBotContext()
 			.AddDefaultJsonOptions()
 			.AddVoiceManagement()
+			.AddLogging(loggingBuilder =>
+				loggingBuilder.AddSerilog(dispose: true))
 			.AddEventModules()
 			.AddSingleton<Handlers.EventHandler>()
 			.AddSingleton<CommandHandler>()

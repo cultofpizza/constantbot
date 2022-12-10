@@ -12,7 +12,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Victoria;
-using Victoria.Enums;
+using Victoria.Node;
+using Victoria.Player;
 using Victoria.Responses.Search;
 
 namespace ConstantBotApplication.Modules.Interactions;
@@ -20,10 +21,10 @@ namespace ConstantBotApplication.Modules.Interactions;
 [EnabledInDm(false)]
 public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private readonly LavaNode<CustomLavaPlayer> lavaNode;
+    private readonly LavaNode<CustomLavaPlayer, LavaTrack> lavaNode;
     private readonly BotContext context;
 
-    public MusicPlayerModule(LavaNode<CustomLavaPlayer> lavaNode, BotContext context)
+    public MusicPlayerModule(LavaNode<CustomLavaPlayer, LavaTrack> lavaNode, BotContext context)
     {
         this.lavaNode = lavaNode;
         this.context = context;
@@ -61,7 +62,7 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
                 .WithTitle(player.PlayerState.ToString());
 
         var queueEmbedBuilder = new EmbedBuilder();
-        var queue = player.Queue.ToList();
+        var queue = player.Vueue.ToList();
         string queueString = string.Empty;
 
         for (int i = 0; i < queue.Count; i++)
@@ -82,11 +83,11 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
             componentBuilder.WithButton("Resume", "resume", ButtonStyle.Primary, Emoji.Parse(":arrow_forward:"), disabled: true);
 
         componentBuilder
-        .WithButton("Skip", "skip", ButtonStyle.Primary, Emoji.Parse(":track_next:"), disabled: !(player.Queue.Count > 0))
+        .WithButton("Skip", "skip", ButtonStyle.Primary, Emoji.Parse(":track_next:"), disabled: !(player.Vueue.Count > 0))
         .WithButton("Stop", "stop", ButtonStyle.Primary, Emoji.Parse(":stop_button:"), disabled: player.PlayerState == PlayerState.Stopped || player.PlayerState == PlayerState.None)
         .WithButton("Add", "add", ButtonStyle.Primary, Emoji.Parse(":musical_note:"))
-        .WithButton("Shuffle", "shuffle", ButtonStyle.Primary, Emoji.Parse(":twisted_rightwards_arrows:"), row: 1, disabled: !(player.Queue.Count > 0))
-        .WithButton("Clear", "clear", ButtonStyle.Primary, Emoji.Parse(":wastebasket:"), row: 1, disabled: !(player.Queue.Count > 0))
+        .WithButton("Shuffle", "shuffle", ButtonStyle.Primary, Emoji.Parse(":twisted_rightwards_arrows:"), row: 1, disabled: !(player.Vueue.Count > 0))
+        .WithButton("Clear", "clear", ButtonStyle.Primary, Emoji.Parse(":wastebasket:"), row: 1, disabled: !(player.Vueue.Count > 0))
         .WithButton("Refresh", "refresh", ButtonStyle.Primary, Emoji.Parse(":arrows_counterclockwise:"), row: 1)
         .WithButton("Leave", "leave", ButtonStyle.Danger, Emoji.Parse(":door:"), row: 1);
         await RespondAsync(embeds: new Embed[] { embedBuilder.Build(), queueEmbedBuilder.Build() }, components: componentBuilder.Build());
@@ -119,7 +120,7 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
         else player = await lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
 
         var set = await context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstAsync();
-        if (set.Volume.HasValue) await player.UpdateVolumeAsync(set.Volume.Value);
+        if (set.Volume.HasValue) await player.SetVolumeAsync(set.Volume.Value);
 
         SearchType searchType;
         if (track.StartsWith("http")) searchType = SearchType.Direct;
@@ -140,7 +141,7 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
         }
         else if (searchResponse.Status == SearchStatus.PlaylistLoaded)
         {
-            player.Queue.Enqueue(searchResponse.Tracks.Skip(1));
+            player.Vueue.Enqueue(searchResponse.Tracks.Skip(1));
         }
         var lavaTrack = searchResponse.Tracks.First();
 
@@ -219,7 +220,7 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync("You need to be connected to channel with me");
             return;
         }
-        if (!player.Queue.TryDequeue(out var queueable))
+        if (!player.Vueue.TryDequeue(out var queueable))
         {
             await RespondAsync("Queue completed!");
             return;
@@ -298,13 +299,13 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync("You need to be connected to channel with me");
             return;
         }
-        if (player.Queue.Count == 0)
+        if (player.Vueue.Count == 0)
         {
             await RespondAsync("I have tracks in queue.");
             return;
         }
 
-        player.Queue.Shuffle();
+        player.Vueue.Shuffle();
         await player.RedrawPlayerAsync();
         await RespondAsync();
     }
@@ -336,13 +337,13 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
             await RespondAsync("You need to be connected to channel with me");
             return;
         }
-        if (player.Queue.Count == 0)
+        if (player.Vueue.Count == 0)
         {
             await RespondAsync("I have tracks in queue.");
             return;
         }
 
-        player.Queue.Clear();
+        player.Vueue.Clear();
         await player.RedrawPlayerAsync();
         await RespondAsync();
     }
@@ -376,11 +377,11 @@ public class MusicPlayerModule : InteractionModuleBase<SocketInteractionContext>
         }
         else if (searchResponse.Status == SearchStatus.PlaylistLoaded)
         {
-            player.Queue.Enqueue(searchResponse.Tracks);
+            player.Vueue.Enqueue(searchResponse.Tracks);
         }
         else
         {
-            player.Queue.Enqueue(searchResponse.Tracks.First());
+            player.Vueue.Enqueue(searchResponse.Tracks.First());
         }
 
         await player.RedrawPlayerAsync();

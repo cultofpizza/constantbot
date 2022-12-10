@@ -1,16 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace ConstantBotApplication.Migrations
 {
-    public partial class AddedSocialCounter : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "GuildSettings");
-
             migrationBuilder.CreateTable(
                 name: "Guilds",
                 columns: table => new
@@ -31,6 +29,21 @@ namespace ConstantBotApplication.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SocialAttachments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    GuildId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    Action = table.Column<int>(type: "integer", nullable: false),
+                    Url = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SocialAttachments", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SocialCounters",
                 columns: table => new
                 {
@@ -41,7 +54,7 @@ namespace ConstantBotApplication.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SocialCounters", x => new { x.GiverId, x.TakerId });
+                    table.PrimaryKey("PK_SocialCounters", x => new { x.GiverId, x.TakerId, x.Action });
                 });
         }
 
@@ -51,22 +64,10 @@ namespace ConstantBotApplication.Migrations
                 name: "Guilds");
 
             migrationBuilder.DropTable(
-                name: "SocialCounters");
+                name: "SocialAttachments");
 
-            migrationBuilder.CreateTable(
-                name: "GuildSettings",
-                columns: table => new
-                {
-                    GuilId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
-                    MonitorChannelId = table.Column<decimal>(type: "numeric(20,0)", nullable: true),
-                    MonitoringEnable = table.Column<bool>(type: "boolean", nullable: false),
-                    ReportChannelId = table.Column<decimal>(type: "numeric(20,0)", nullable: true),
-                    Volume = table.Column<int>(type: "integer", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GuildSettings", x => x.GuilId);
-                });
+            migrationBuilder.DropTable(
+                name: "SocialCounters");
         }
     }
 }

@@ -11,14 +11,14 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ConstantBotApplication.Migrations
 {
     [DbContext(typeof(BotContext))]
-    [Migration("20221001225122_AddedAttachments")]
-    partial class AddedAttachments
+    [Migration("20221210110214_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.8")
+                .HasAnnotation("ProductVersion", "6.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
