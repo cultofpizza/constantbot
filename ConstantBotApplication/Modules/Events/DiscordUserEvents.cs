@@ -1,7 +1,8 @@
 ﻿using ConstantBotApplication.Domain;
 using ConstantBotApplication.Modules.Events.Abstractions;
-using Discord;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -15,161 +16,181 @@ namespace ConstantBotApplication.Modules.Events
     public class DiscordUserEvents : IEventModule
     {
         private readonly BotContext _context;
-        private readonly DiscordSocketClient _client;
+        private readonly DiscordClient _client;
 
-        public DiscordUserEvents(BotContext context, DiscordSocketClient client)
+        public DiscordUserEvents(BotContext context, DiscordClient client)
         {
             _context = context;
             _client = client;
         }
 
-        public void Register(DiscordSocketClient client)
+        public void Register(DiscordClient client)
         {
             client.UserUpdated += UserUpdated;
-            client.UserJoined += UserJoined;
-            client.UserLeft += UserLeft;
-            client.UserBanned += UserBanned;
-            client.UserUnbanned += UserUnbanned;
-            client.UserVoiceStateUpdated += UserVoiceStateUpdated;
+            client.GuildMemberAdded += UserJoined;
+            client.GuildMemberRemoved += UserLeft;
+            client.GuildBanAdded += UserBanned;
+            client.GuildBanRemoved += UserUnbanned;
+            client.VoiceStateUpdated += UserVoiceStateUpdated;
             client.GuildMemberUpdated += GuildMemberUpdated;
         }
 
-        public async Task GuildMemberUpdated(Cacheable<SocketGuildUser, ulong> userBefore, SocketGuildUser userAfter)
+        public async Task GuildMemberUpdated(DiscordClient client, GuildMemberUpdateEventArgs args)
         {
-            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == userAfter.Guild.Id).SingleOrDefaultAsync();
+            var userBefore = args.MemberBefore;
+            var userAfter = args.MemberAfter;
+            var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == args.Guild.Id).SingleOrDefaultAsync();
             if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
-            var builder = new EmbedBuilder()
-                .WithAuthor(userAfter)
+            var builder = new DiscordEmbedBuilder()
+                .WithAuthor(userAfter.Username, null, userAfter.AvatarUrl)
                 .WithFooter($"ID: {userAfter.Id}")
-                .WithCurrentTimestamp();
-            if (userBefore.HasValue && !userBefore.Value.Roles.SequenceEqual(userAfter.Roles))
+                .WithTimestamp(DateTime.Now);
+            if (!userBefore.Roles.SequenceEqual(userAfter.Roles))
             {
-                builder.WithColor(Color.Blue);
-                if (userBefore.Value.Roles.Count() < userAfter.Roles.Count())
-                    builder.WithDescription($"{Emoji.Parse(":gear:")} ``{userAfter.DisplayName}`` was assigned a role ``{userAfter.Roles.Except(userBefore.Value.Roles).FirstOrDefault()}``");
+                builder.WithColor(DiscordColor.Blue);
+                if (userBefore.Roles.Count() < userAfter.Roles.Count())
+                    builder.WithDescription($"{DiscordEmoji.FromName(client, ":gear:")} ``{userAfter.DisplayName}`` was assigned a role ``{userAfter.Roles.Except(userBefore.Roles).FirstOrDefault()}``");
                 else
-                    builder.WithDescription($"{Emoji.Parse(":gear:")} ``{userAfter.DisplayName}``\'s role ``{userBefore.Value.Roles.Except(userAfter.Roles).FirstOrDefault()}`` was taken away");
+                    builder.WithDescription($"{DiscordEmoji.FromName(client, ":gear:")} ``{userAfter.DisplayName}``\'s role ``{userBefore.Roles.Except(userAfter.Roles).FirstOrDefault()}`` was taken away");
             }
             else
             {
-                builder.WithColor(Color.Gold)
-                .WithDescription($"{Emoji.Parse(":detective:")} ``{userAfter.Nickname ?? userAfter.Username}`` has updated server profile")
+                builder.WithColor(DiscordColor.Gold)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":detective:")} ``{userAfter.Nickname ?? userAfter.Username}`` has updated server profile")
                 .AddField("User", userAfter.Mention);
-                if (userBefore.HasValue && userBefore.Value.DisplayAvatarId != userAfter.DisplayAvatarId)
+                if (userBefore.AvatarUrl != userAfter.AvatarUrl) // Эта херня не работает потому что аватарка до и после почему то всегда одна и таже
                 {
-                    //builder.AddField("Server avatar before", userBefore.Value.AvatarId != null ? $"[Avatar]({userBefore.Value.GetGuildAvatarUrl()})" : $"[Avatar]({userBefore.Value.GetDefaultAvatarUrl()})");
-                    //if (userAfter.AvatarId != null)
-                    //    builder.WithImageUrl(userAfter.GetGuildAvatarUrl());
-                    //else
-                    //    builder.WithImageUrl(userAfter.GetDefaultAvatarUrl()); Old avatars(except default) are not accessible
-                    if (userAfter.DisplayAvatarId != null)
-                        builder.WithImageUrl(userAfter.GetDisplayAvatarUrl(size: 4096));
+                    if (userAfter.AvatarUrl != null)
+                        builder.WithImageUrl(userAfter.AvatarUrl);
                     else
-                        builder.WithImageUrl(userAfter.GetDefaultAvatarUrl());
+                        builder.WithImageUrl(userAfter.DefaultAvatarUrl);
                 }
-                if (userBefore.HasValue && userBefore.Value.Nickname != userAfter.Nickname)
-                    builder.AddField("Nickname before", userBefore.Value.Nickname != null ? $"``{userBefore.Value.Nickname}``" : "None", true)
+                else if (userBefore.GuildAvatarHash != userAfter.GuildAvatarHash)
+                {
+                    if (userAfter.GuildAvatarUrl != null)
+                        builder.WithImageUrl(userAfter.GuildAvatarUrl);
+                    else if (userAfter.AvatarUrl != null)
+                        builder.WithImageUrl(userAfter.AvatarUrl);
+                    else
+                        builder.WithImageUrl(userAfter.DefaultAvatarUrl);
+                }
+                if (userBefore.Username != userAfter.Username)
+                    builder.AddField("Username before", userBefore.Username != null ? $"``{userBefore.Username}``" : "None", true)
+                    .AddField("After", userAfter.Username != null ? $"``{userAfter.Username}``" : "None", true);
+                else if (userBefore.Nickname != userAfter.Nickname)
+                    builder.AddField("Nickname before", userBefore.Nickname != null ? $"``{userBefore.Nickname}``" : "None", true)
                     .AddField("After", userAfter.Nickname != null ? $"``{userAfter.Nickname}``" : "None", true);
             }
 
-            var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+            var channel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             if (builder.Fields.Count != 1 || builder.ImageUrl != null)
                 await channel.SendMessageAsync(embed: builder.Build());
         }
 
-        public async Task UserBanned(SocketUser user, SocketGuild guild)
+        public async Task UserBanned(DiscordClient client, GuildBanAddEventArgs args)
         {
+            var user = args.Member;
+            var guild = args.Guild;
             var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guild.Id).SingleOrDefaultAsync();
             if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
-            var builder = new EmbedBuilder()
-                .WithAuthor(user)
+            var builder = new DiscordEmbedBuilder()
+                .WithAuthor(user.Username, null, user.AvatarUrl)
                 .WithFooter($"ID: {user.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Red)
-                .WithDescription($"{Emoji.Parse(":hammer:")} ``{user.Username}`` was banned!")
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.Red)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":hammer:")} ``{user.Username}`` was banned!")
                 .AddField("User", user.Mention, true)
                 .AddField("Reason", (await guild.GetBanAsync(user)).Reason, true);
 
 
-            var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+            var channel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             await channel.SendMessageAsync(embed: builder.Build());
         }
 
-        public async Task UserJoined(SocketGuildUser user)
+        public async Task UserJoined(DiscordClient client, GuildMemberAddEventArgs args)
         {
+            var user = args.Member;
             var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == user.Guild.Id).SingleOrDefaultAsync();
             if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
-            var builder = new EmbedBuilder()
-                .WithAuthor(user)
+            var builder = new DiscordEmbedBuilder()
+                .WithAuthor(user.Username, null, user.AvatarUrl)
                 .WithFooter($"ID: {user.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Green)
-                .WithDescription($"{Emoji.Parse(":confetti_ball:")} ``{user.Username}`` joined your server!")
-                .WithImageUrl(user.GetAvatarUrl())
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.Green)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":confetti_ball:")} ``{user.Username}`` joined your server!")
+                .WithImageUrl(user.AvatarUrl)
                 .AddField("User", user.Mention);
 
 
-            var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+            var channel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             await channel.SendMessageAsync(embed: builder.Build());
         }
 
-        public async Task UserLeft(SocketGuild guild, SocketUser user)
+        public async Task UserLeft(DiscordClient client, GuildMemberRemoveEventArgs args)
         {
+            var user = args.Member;
+            var guild = args.Guild;
             var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guild.Id).SingleOrDefaultAsync();
             if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
-            var builder = new EmbedBuilder()
-                .WithAuthor(user)
+            var builder = new DiscordEmbedBuilder()
+                .WithAuthor(user.Username, null, user.AvatarUrl)
                 .WithFooter($"ID: {user.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Red)
-                .WithDescription($"{Emoji.Parse(":confetti_ball:")} ``{user.Username}`` left your server!")
-                .WithImageUrl(user.GetAvatarUrl())
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.Red)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":door:")} ``{user.Username}`` left your server!")
+                .WithImageUrl(user.AvatarUrl)
                 .AddField("User", user.Mention);
 
 
-            var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+            var channel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             await channel.SendMessageAsync(embed: builder.Build());
         }
 
-        public async Task UserUnbanned(SocketUser user, SocketGuild guild)
+        public async Task UserUnbanned(DiscordClient client, GuildBanRemoveEventArgs args)
         {
+            var user = args.Member;
+            var guild = args.Guild;
             var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guild.Id).SingleOrDefaultAsync();
             if (!guildSettings.UserMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
 
-            var builder = new EmbedBuilder()
-                .WithAuthor(user)
+            var builder = new DiscordEmbedBuilder()
+                .WithAuthor(user.Username, null, user.AvatarUrl)
                 .WithFooter($"ID: {user.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Green)
-                .WithDescription($"{Emoji.Parse(":hammer:")} ``{user.Username}`` was unbanned!")
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.Green)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":hammer:")} ``{user.Username}`` was unbanned!")
                 .AddField("User", user.Mention);
 
-            var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+            var channel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
             await channel.SendMessageAsync(embed: builder.Build());
         }
 
-        public async Task UserUpdated(SocketUser userBefore, SocketUser userAfter)
+        public async Task UserUpdated(DiscordClient client, UserUpdateEventArgs args)
         {
+            var userBefore = args.UserBefore;
+            var userAfter = args.UserAfter;
             HashSet<ulong> guildIds = new HashSet<ulong>();
-            foreach (var item in userBefore.MutualGuilds.Select(i => i.Id).ToArray()) guildIds.Add(item);
-            foreach (var item in userAfter.MutualGuilds.Select(i => i.Id).ToArray()) guildIds.Add(item);
+
             var settings = await _context.Guilds.ToListAsync();
             foreach (var item in settings)
             {
-                if (!guildIds.Contains(item.GuildId)) continue;
-                if (!item.UserMonitoring || !item.MonitorChannelId.HasValue) guildIds.Remove(item.GuildId);
+                if (!item.UserMonitoring || !item.MonitorChannelId.HasValue) continue;
+                var guild = await client.GetGuildAsync(item.GuildId);
+                var user = await guild.GetMemberAsync(userBefore.Id);
+                if (user == null) continue;
+                guildIds.Add(item.GuildId);
             }
 
-            var builder = new EmbedBuilder()
-                .WithAuthor(userAfter)
+            var builder = new DiscordEmbedBuilder()
+                .WithAuthor(userAfter.Username, null, userAfter.AvatarUrl)
                 .WithFooter($"ID: {userAfter.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Gold)
-                .WithDescription($"{Emoji.Parse(":detective:")} ``{userAfter.Username}`` has updated profile")
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.Gold)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":detective:")} ``{userAfter.Username}`` has updated profile")
                 .AddField("User", userAfter.Mention);
             //if (userBefore.AvatarId != userAfter.AvatarId)
             //{
@@ -192,41 +213,45 @@ namespace ConstantBotApplication.Modules.Events
                 var embed = builder.Build();
                 foreach (var item in guildIds)
                 {
-                    var channel = (SocketTextChannel)await _client.GetChannelAsync(settings.Where(i => i.GuildId == item).FirstOrDefault().MonitorChannelId.Value);
+                    var channel = await _client.GetChannelAsync(settings.Where(i => i.GuildId == item).FirstOrDefault().MonitorChannelId.Value);
                     await channel.SendMessageAsync(embed: embed);
                 }
             }
         }
 
-        public async Task UserVoiceStateUpdated(SocketUser user, SocketVoiceState stateBefore, SocketVoiceState stateAfter)
+        public async Task UserVoiceStateUpdated(DiscordClient client, VoiceStateUpdateEventArgs args)
         {
-            if (stateBefore.VoiceChannel == stateAfter.VoiceChannel) return;
-            var guildId = stateBefore.VoiceChannel != null ? stateBefore.VoiceChannel.Guild.Id : stateAfter.VoiceChannel.Guild.Id;
+            var stateBefore = args.Before; 
+            var stateAfter = args.After;
+            var user = args.User;
+
+            if (stateBefore?.Channel == stateAfter?.Channel) return;
+            var guildId = stateBefore != null ? stateBefore.Channel.Guild.Id : stateAfter.Channel.Guild.Id;
             var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildId).SingleOrDefaultAsync();
             if (!guildSettings.VoiceMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
-            var channel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
-            var builder = new EmbedBuilder()
-                .WithAuthor(user)
-                .WithFooter($"ID: {user.Id}")
-                .WithCurrentTimestamp();
-            if (stateBefore.VoiceChannel == null)
+            var channel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+            var builder = new DiscordEmbedBuilder()
+                .WithAuthor(user.Username, null, user.AvatarUrl)
+                .WithFooter($"Session ID: {args.SessionId}")
+                .WithTimestamp(DateTime.Now);
+            if (stateBefore == null)
             {
-                builder.WithColor(Color.Green)
-                    .WithDescription($"{Emoji.Parse(":inbox_tray:")} ``{user.Username}`` joined channel {stateAfter.VoiceChannel.Mention}");
+                builder.WithColor(DiscordColor.Green)
+                    .WithDescription($"{DiscordEmoji.FromName(client, ":inbox_tray:")} ``{user.Username}`` joined channel {stateAfter.Channel.Mention}");
 
             }
-            else if (stateAfter.VoiceChannel == null)
+            else if (stateAfter.Channel == null)
             {
-                builder.WithColor(Color.Red)
-                    .WithDescription($"{Emoji.Parse(":outbox_tray:")} ``{user.Username}`` left channel {stateBefore.VoiceChannel.Mention}");
+                builder.WithColor(DiscordColor.Red)
+                    .WithDescription($"{DiscordEmoji.FromName(client, ":outbox_tray:")} ``{user.Username}`` left channel {stateBefore.Channel.Mention}");
 
             }
             else
             {
-                builder.WithColor(Color.Orange)
+                builder.WithColor(DiscordColor.Orange)
                     .WithDescription($"``{user.Username}`` was moved")
-                    .AddField("Channel before", stateBefore.VoiceChannel.Mention, true)
-                    .AddField("After", stateAfter.VoiceChannel.Mention, true);
+                    .AddField("Channel before", stateBefore.Channel.Mention, true)
+                    .AddField("After", stateAfter.Channel.Mention, true);
 
             }
             await channel.SendMessageAsync(embed: builder.Build());

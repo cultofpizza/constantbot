@@ -1,7 +1,6 @@
 ﻿using ConstantBotApplication.Domain;
 using ConstantBotApplication.Modules.Events.Abstractions;
-using Discord;
-using Discord.WebSocket;
+using DSharpPlus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -14,10 +13,10 @@ namespace ConstantBotApplication.Handlers;
 
 public class EventHandler
 {
-    private readonly DiscordSocketClient client;
+    private readonly DiscordClient client;
     private readonly IServiceProvider services;
 
-    public EventHandler(DiscordSocketClient client, IServiceProvider services)
+    public EventHandler(DiscordClient client, IServiceProvider services)
     {
         this.client = client;
         this.services = services;

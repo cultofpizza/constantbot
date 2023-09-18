@@ -1,22 +1,24 @@
-﻿using ConstantBotApplication.Domain;
+﻿//using ConstantBotApplication.Domain;
+//using ConstantBotApplication.Handlers;
 using ConstantBotApplication.Extensions;
-using ConstantBotApplication.Handlers;
-using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
+using DSharpPlus.SlashCommands;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using System;
+using System.Reflection;
 using System.Threading.Tasks;
-using static Discord.GatewayIntents;
+using static DSharpPlus.DiscordIntents;
 
 namespace ConstantBotApplication
 {
     public class Program
     {
-        private DiscordSocketClient _client;
+        private DiscordClient _client;
 
         public static Task Main(string[] args) => new Program().MainAsync();
 
@@ -24,67 +26,48 @@ namespace ConstantBotApplication
         {
             Log.Logger = new LoggerConfiguration()
               .Enrich.FromLogContext()
-              .WriteTo.Console()
+              .WriteTo.Console()             
               .CreateLogger();
 
-            var _config = new DiscordSocketConfig
+            var logFactory = new LoggerFactory().AddSerilog();
+
+            var _config = new DiscordConfiguration
             {
-                GatewayIntents = Guilds | GuildMembers | GuildBans | GuildVoiceStates | GuildMessages | GuildMessageReactions | DirectMessages | DirectMessageReactions,
-                MessageCacheSize = 100,
-                AlwaysDownloadUsers = true
+                Intents = Guilds | GuildMembers | GuildBans | GuildVoiceStates | GuildMessages | GuildMessageReactions | DirectMessages | DirectMessageReactions,
+                Token = Environment.GetEnvironmentVariable("token"),
+                TokenType = TokenType.Bot,
+                LoggerFactory = logFactory
             };
 
-
-
-            _client = new DiscordSocketClient(_config);
+            _client = new DiscordClient(_config);
 
             var services = new Startup(client: _client).BuildServiceProvider();
 
-            var _interactionService = new InteractionService(_client);
-            Microsoft.Extensions.Logging.ILogger clientLogger = services.GetService<ILogger<DiscordSocketClient>>();
-            _client.Log += message =>
+            //var _interactionService = new InteractionService(_client);
+            _client.UseSlashCommands(new SlashCommandsConfiguration
             {
-                switch (message.Severity)
-                {
-                    case LogSeverity.Critical:
-                        clientLogger.LogCritical(message.Exception, message.Message);
-                        break;
-                    case LogSeverity.Error:
-                        clientLogger.LogError(message.Exception, message.Message);
-                        break;
-                    case LogSeverity.Warning:
-                        clientLogger.LogWarning(message.Exception, message.Message);
-                        break;
-                    case LogSeverity.Info:
-                        clientLogger.LogInformation(message.Exception, message.Message);
-                        break;
-                    case LogSeverity.Verbose:
-                        clientLogger.LogTrace(message.Exception, message.Message);
-                        break;
-                    case LogSeverity.Debug:
-                        clientLogger.LogDebug(message.Exception, message.Message);
-                        break;
-                    default:
-                        break;
-                }
-                return Task.CompletedTask;
-            };
-            await _client.LoginAsync(TokenType.Bot, Environment.GetEnvironmentVariable("token"));
-            await _client.StartAsync();
+                Services = services
+            }).RegisterCommands(Assembly.GetEntryAssembly());
 
 
-
-            _client.Ready += async () =>
+            _client.UseInteractivity(new InteractivityConfiguration
             {
-                await services.GetService<CommandHandler>().InitializeAsync();
-                await services.GetService<InteractionsHandler>().InitializeAsync();
+                Timeout = TimeSpan.FromMinutes(1)
+            });
+
+            await _client.ConnectAsync();
+
+            _client.Ready += async (client, args) =>
+            {
+                //    await services.GetService<CommandHandler>().InitializeAsync();
+                //    await services.GetService<InteractionsHandler>().InitializeAsync();
 
                 services.GetService<Handlers.EventHandler>().RegisterEvents();
                 await services.InitializeBotContextAsync();
-                await services.InitializeVoiceManagmentAsync();
+                //    await services.InitializeVoiceManagmentAsync();
             };
 
-            await Task.Delay(-1);
+        await Task.Delay(-1);
         }
     }
 }

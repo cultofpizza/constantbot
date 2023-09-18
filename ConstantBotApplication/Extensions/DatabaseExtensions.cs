@@ -1,5 +1,6 @@
 ﻿using ConstantBotApplication.Domain;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -26,22 +27,22 @@ public static class DatabaseExtensions
     public static async Task<IServiceProvider> InitializeBotContextAsync(this IServiceProvider services)
     {
         var context = services.GetService<BotContext>();
-        var client = services.GetService<DiscordSocketClient>();
+        var client = services.GetService<DiscordClient>();
 
         context.SavedChanges += (e,ee) => context.ChangeTracker.AcceptAllChanges();
 
-        client.JoinedGuild += async guild => await context.EnsureSettingsCreatedAsync(guild);
+        client.GuildCreated += async (client, args) => await context.EnsureSettingsCreatedAsync(args.Guild);
 
         foreach (var guild in client.Guilds)
         {
-            await context.EnsureSettingsCreatedAsync(guild);
+            await context.EnsureSettingsCreatedAsync(guild.Value);
         }
         
 
         return services;
     }
 
-    static async Task EnsureSettingsCreatedAsync(this BotContext context, SocketGuild guild)
+    static async Task EnsureSettingsCreatedAsync(this BotContext context, DiscordGuild guild)
     {
         if (0 == await context.Guilds.Where(i => i.GuildId == guild.Id).CountAsync())
         {

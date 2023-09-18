@@ -1,7 +1,8 @@
 ﻿using ConstantBotApplication.Domain;
 using ConstantBotApplication.Modules.Events.Abstractions;
-using Discord;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -14,108 +15,113 @@ namespace ConstantBotApplication.Modules.Events;
 public class DiscordReactionEvents : IEventModule
 {
     private readonly BotContext _context;
-    private readonly DiscordSocketClient _client;
+    private readonly DiscordClient _client;
 
-    public DiscordReactionEvents(BotContext context, DiscordSocketClient client)
+    public DiscordReactionEvents(BotContext context, DiscordClient client)
     {
         _context = context;
         _client = client;
     }
-    public void Register(DiscordSocketClient client)
+    public void Register(DiscordClient client)
     {
-        client.ReactionAdded += ReactionAdded;
-        client.ReactionRemoved += ReactionRemoved;
-        client.ReactionsCleared += ReactionCleared;
-        client.ReactionsRemovedForEmote += ReactionClearedForEmote;
+        client.MessageReactionAdded += ReactionAdded;
+        client.MessageReactionRemoved += ReactionRemoved;
+        client.MessageReactionsCleared += ReactionCleared;
+        client.MessageReactionRemovedEmoji += ReactionClearedForEmote;
     }
 
-    private async Task ReactionClearedForEmote(Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, IEmote emote)
+    private async Task ReactionClearedForEmote(DiscordClient client, MessageReactionRemoveEmojiEventArgs args)
     {
-        var guildChannel = (await channel.GetOrDownloadAsync()) as SocketGuildChannel;
-        var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
+        var guildChannel = args.Channel;
+        var guildMessage = args.Message;
+        var emote = args.Emoji;
         if (guildChannel == null || guildMessage == null) return;
 
         var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
         if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
-        var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+        var monitoringChannel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
-        var builder = new EmbedBuilder()
-                .WithAuthor(guildMessage.Author)
+        var builder = new DiscordEmbedBuilder()
                 .WithFooter($"ID: {guildMessage.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.DarkRed)
-                .WithDescription($"{Emoji.Parse(":eyes:")} Reactions of emote {emote} to message in ``{guildChannel.Name}`` was cleared")
-                .AddField("Message Author", guildMessage.Author.Mention, true)
-                .AddField("Message Timestamp", guildMessage.Timestamp, true);
+                .WithTimestamp(DateTime.UtcNow)
+                .WithColor(DiscordColor.DarkRed)
+                .WithDescription($"{DiscordEmoji.FromName(client ,":eyes:")} Reactions of emote {emote} to message in ``{guildChannel.Name}`` was cleared")
+                .AddField("Message Link", guildMessage.JumpLink.ToString(), true)
+                .AddField("Message Timestamp", guildMessage.Timestamp.ToString("u"), true);
 
 
         await monitoringChannel.SendMessageAsync(embed: builder.Build());
     }
 
-    private async Task ReactionCleared(Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel)
+    private async Task ReactionCleared(DiscordClient client, MessageReactionsClearEventArgs args)
     {
-        var guildChannel = (await channel.GetOrDownloadAsync()) as SocketGuildChannel;
-        var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
+        var guildChannel = args.Channel;
+        var guildMessage = args.Message;
         if (guildChannel == null || guildMessage == null) return;
 
         var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
         if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
-        var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+        var monitoringChannel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
-        var builder = new EmbedBuilder()
-                .WithAuthor(guildMessage.Author)
+        var builder = new DiscordEmbedBuilder()
                 .WithFooter($"ID: {guildMessage.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.DarkRed)
-                .WithDescription($"{Emoji.Parse(":eyes:")} Reactions to message in ``{guildChannel.Name}`` was cleared")
-                .AddField("Message Author", guildMessage.Author.Mention, true)
-                .AddField("Message Timestamp", guildMessage.Timestamp, true);
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.DarkRed)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":eyes:")} Reactions to message in ``{guildChannel.Name}`` was cleared")
+                .AddField("Message Link", guildMessage.JumpLink.ToString(), true)
+                .AddField("Message Timestamp", guildMessage.Timestamp.ToString("u"), true);
 
 
         await monitoringChannel.SendMessageAsync(embed: builder.Build());
     }
 
-    private async Task ReactionRemoved(Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
+    private async Task ReactionRemoved(DiscordClient client, MessageReactionRemoveEventArgs args)
     {
-        var guildChannel = (await channel.GetOrDownloadAsync()) as SocketGuildChannel;
-        var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
+        var guildChannel = args.Channel;
+        var guildMessage = args.Message;
+        var emoji = args.Emoji;
+        var user = args.User;
         if (guildChannel == null || guildMessage == null) return;
 
         var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
         if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
-        var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+        var monitoringChannel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
-        var builder = new EmbedBuilder()
-                .WithAuthor(reaction.User.Value)
+        var builder = new DiscordEmbedBuilder()
+                .WithAuthor(user.Username, null, user.AvatarUrl)
                 .WithFooter($"ID: {guildMessage.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Red)
-                .WithDescription($"{Emoji.Parse(":eyes:")} ``{reaction.User.Value.Username}`` reaction {reaction.Emote} to message in ``{guildChannel.Name}`` was removed")
-                .AddField("Message Author", guildMessage.Author.Mention, true)
-                .AddField("Message Timestamp", guildMessage.Timestamp, true);
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.Red)
+                .WithDescription($"{DiscordEmoji.FromName(client, ":eyes:")} ``{user.Username}`` reaction {emoji} to message in ``{guildChannel.Name}`` was removed")
+                .AddField("Message Author", user.Mention, true)
+                .AddField("Message Timestamp", guildMessage.Timestamp.ToString("u"), true)
+                .AddField("Message Link", guildMessage.JumpLink.ToString());
 
 
         await monitoringChannel.SendMessageAsync(embed: builder.Build());
     }
 
-    private async Task ReactionAdded(Cacheable<IUserMessage, ulong> message, Cacheable<IMessageChannel, ulong> channel, SocketReaction reaction)
+    private async Task ReactionAdded(DiscordClient client, MessageReactionAddEventArgs args)
     {
-        var guildChannel = (await channel.GetOrDownloadAsync()) as SocketGuildChannel;
-        var guildMessage = (await message.GetOrDownloadAsync()) as SocketUserMessage;
-        if(guildChannel == null || guildMessage == null) return;
-        
+        var guildChannel = args.Channel;
+        var guildMessage = args.Message;
+        var emoji = args.Emoji;
+        var user = args.User;
+        if (guildChannel == null || guildMessage == null) return;
+
         var guildSettings = await _context.Guilds.AsQueryable().Where(i => i.GuildId == guildChannel.Guild.Id).SingleOrDefaultAsync();
         if (!guildSettings.ReactionsMonitoring || !guildSettings.MonitorChannelId.HasValue) return;
-        var monitoringChannel = (SocketTextChannel)await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
+        var monitoringChannel = await _client.GetChannelAsync(guildSettings.MonitorChannelId.Value);
 
-        var builder = new EmbedBuilder()
-                .WithAuthor(reaction.User.Value)
+        var builder = new DiscordEmbedBuilder()
+                .WithAuthor(user.Username, null, user.AvatarUrl)
                 .WithFooter($"ID: {guildMessage.Id}")
-                .WithCurrentTimestamp()
-                .WithColor(Color.Green)
-                .WithDescription($"{Emoji.Parse(":eyes:")} ``{reaction.User.Value.Username}`` reacted to message in ``{guildChannel.Name}`` with {reaction.Emote}")
-                .AddField("Message Author", guildMessage.Author.Mention,true)
-                .AddField("Message Timestamp", guildMessage.Timestamp, true);
+                .WithTimestamp(DateTime.Now)
+                .WithColor(DiscordColor.Green)
+                .WithDescription($"{DiscordEmoji.FromName(client ,":eyes:")} ``{user.Username}`` reacted to message in ``{guildChannel.Name}`` with {emoji}")
+                .AddField("Message Author", user.Mention, true)
+                .AddField("Message Timestamp", guildMessage.Timestamp.ToString("u"), true)
+                .AddField("Message Link", guildMessage.JumpLink.ToString());
 
 
         await monitoringChannel.SendMessageAsync(embed: builder.Build());

@@ -10,7 +10,7 @@ using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using static System.Collections.Specialized.BitVector32;
 
-namespace ConstantBotApplication.Modules.Interactions;
+namespace ConstantBotApplication.Modules.SlashCommands;
 
 public class SocialModule : InteractionModuleBase<SocketInteractionContext>
 {

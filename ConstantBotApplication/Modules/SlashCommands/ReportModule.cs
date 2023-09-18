@@ -1,7 +1,8 @@
 ﻿using ConstantBotApplication.Domain;
 using ConstantBotApplication.Modals;
-using Discord;
-using Discord.Interactions;
+using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
+using DSharpPlus.SlashCommands.Attributes;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,8 +12,9 @@ using System.Threading.Tasks;
 
 namespace ConstantBotApplication.Modules.Interactions
 {
-    [EnabledInDm(false)]
-    public class ReportModule : InteractionModuleBase<SocketInteractionContext>
+    //[EnabledInDm(false)]
+    [SlashRequireGuild]
+    public class ReportModule : ApplicationCommandModule
     {
         private readonly BotContext context;
 
@@ -22,16 +24,16 @@ namespace ConstantBotApplication.Modules.Interactions
         }
 
         [SlashCommand("report","Creates report for moderators")]
-        public async Task Report()
+        public async Task Report(InteractionContext context)
         {
             if(await context.Guilds.Where(i => i.GuildId == Context.Guild.Id && i.ReportChannelId != null).CountAsync() == 0)
             {
                 await RespondAsync("Reporting not enabled on this server", ephemeral: true);
                 return;
             }
-            await RespondWithModalAsync<ReportModal>("channel_report");
+            await context.CreateResponseAsync(DSharpPlus.InteractionResponseType.Modal,  <ReportModal>("channel_report");
         }
-
+        [modal]
         [ModalInteraction("channel_report")]
         public async Task SaveReport(ReportModal modal)
         {
@@ -42,14 +44,14 @@ namespace ConstantBotApplication.Modules.Interactions
                 .WithCurrentTimestamp()
                 .WithColor(Color.Blue)
                 .WithFooter($"ID: {Context.User.Id}")
-                .AddField("Channel",Context.Channel.Name)
+                .AddField("Channel", Context.Channel.Name)
                 .WithTitle("Report")
                 .WithDescription(modal.Content);
 
             await channel.SendMessageAsync(embed: builder.Build());
 
-            await RespondAsync("Your report submitted successfuly",ephemeral: true);
+            await RespondAsync("Your report submitted successfuly", ephemeral: true);
         }
-        
+
     }
 }

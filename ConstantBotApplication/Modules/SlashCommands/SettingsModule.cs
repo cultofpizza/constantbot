@@ -1,8 +1,9 @@
 ﻿using ConstantBotApplication.Domain;
-using ConstantBotApplication.Modals;
-using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
+using DSharpPlus;
+using DSharpPlus.Entities;
+using DSharpPlus.SlashCommands;
+using DSharpPlus.SlashCommands.Attributes;
+//using ConstantBotApplication.Modals;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -15,32 +16,33 @@ using System.Threading.Tasks;
 
 namespace ConstantBotApplication.Modules.Interactions;
 
-[Group("setup","Configures...")]
-[RequireUserPermission(Discord.GuildPermission.Administrator)]
-[RequireBotPermission(Discord.ChannelPermission.SendMessages)]
-public class SettingsModule : InteractionModuleBase<SocketInteractionContext>
+[SlashCommandGroup("setup","Configures...")]
+[SlashRequireUserPermissions(Permissions.Administrator)]
+[SlashRequireBotPermissions(Permissions.SendMessages)]
+public class SettingsModule : ApplicationCommandModule
 {
     private readonly BotContext _context;
-    private readonly InteractionService interactions;
-    private readonly Emoji enbaledEmoji = Emoji.Parse(":white_check_mark:");
-    private readonly Emoji disabledEmoji = Emoji.Parse(":x:"); //":negative_squared_cross_mark:"
+    private readonly DiscordEmoji enbaledEmoji;
+    private readonly DiscordEmoji disabledEmoji;
 
-    public SettingsModule(BotContext context, InteractionService interactions)
+    public SettingsModule(BotContext context, DiscordClient client)
     {
         _context = context;
-        this.interactions = interactions;
+        enbaledEmoji = DiscordEmoji.FromName(client, ":white_check_mark:");
+        disabledEmoji = DiscordEmoji.FromName(client, ":x:"); //":negative_squared_cross_mark:"
+
     }
 
     [SlashCommand("monitoring", "Configures monitoring")]
-    public async Task ShowMonitoringConfig()
+    public async Task ShowMonitoringConfig(InteractionContext context)
     {
-        var entry = await _context.Guilds.Where(i => i.GuildId == Context.Guild.Id).FirstOrDefaultAsync();
+        var entry = await _context.Guilds.Where(i => i.GuildId == context.Guild.Id).FirstOrDefaultAsync();
 
         var components = GetMonitoringComponents(entry.MonitoringConfig);
 
-        await RespondAsync(components: components);
+        await context.CreateResponseAsync(components: components);
     }
-
+        
     [ComponentInteraction("config-monitor-*", true)]
     public async Task ConfigureMonitoring(ushort config, int id)
     {

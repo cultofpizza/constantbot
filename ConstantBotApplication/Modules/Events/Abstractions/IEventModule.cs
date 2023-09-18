@@ -1,5 +1,4 @@
-﻿using Discord;
-using Discord.WebSocket;
+﻿using DSharpPlus;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,5 +9,5 @@ namespace ConstantBotApplication.Modules.Events.Abstractions;
 
 public interface IEventModule
 {
-    public void Register(DiscordSocketClient client);
+    public void Register(DiscordClient client);
 }
